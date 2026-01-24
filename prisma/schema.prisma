@@ -1,6 +1,8 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  // CJS required for NestJS compatibility (Prisma 7 defaults to ESM)
+  moduleFormat = "cjs"
 }
 
 datasource db {
