@@ -17,7 +17,7 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
       validate,
     }),
 
-    // Rate limiting - 100 requests per 60 seconds per IP
+    // Rate limiting - multi-tier: 3/sec, 20/10sec, 100/min per IP
     ThrottlerModule.forRoot({
       throttlers: [
         {
