@@ -13,7 +13,7 @@ interface JwtPayload {
   role: string;
 }
 
-interface TokenResponse {
+export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
 }
