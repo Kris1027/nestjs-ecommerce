@@ -13,6 +13,7 @@ import { IncomingMessage } from 'http';
 import { randomUUID } from 'crypto';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard, RolesGuard } from './common/guards';
 
 @Module({
   imports: [
@@ -21,7 +22,6 @@ import { AuthModule } from './modules/auth/auth.module';
       validate,
     }),
 
-    // Rate limiting - multi-tier: 3/sec, 20/10sec, 100/min per IP
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -42,13 +42,10 @@ import { AuthModule } from './modules/auth/auth.module';
       ],
     }),
 
-    // Structured logging with request context
     LoggerModule.forRoot({
       pinoHttp: {
-        // Log level based on environment
         level: env.NODE_ENV === 'production' ? 'info' : 'debug',
 
-        // Generate request ID for distributed tracing
         genReqId: (req: IncomingMessage) => {
           const existingId = req.headers['x-request-id'];
           if (existingId) {
@@ -57,7 +54,6 @@ import { AuthModule } from './modules/auth/auth.module';
           return randomUUID();
         },
 
-        // Pretty print in development, JSON in production
         transport:
           env.NODE_ENV !== 'production'
             ? {
@@ -70,7 +66,6 @@ import { AuthModule } from './modules/auth/auth.module';
               }
             : undefined,
 
-        // Custom attribute names for cleaner logs
         customAttributeKeys: {
           req: 'request',
           res: 'response',
@@ -79,7 +74,6 @@ import { AuthModule } from './modules/auth/auth.module';
           reqId: 'requestId',
         },
 
-        // Don't log request/response bodies (security + performance)
         serializers: {
           req: (req: { method: string; url: string }) => ({
             method: req.method,
@@ -90,7 +84,6 @@ import { AuthModule } from './modules/auth/auth.module';
           }),
         },
       },
-      // Exclude health check from logs (if you add one later)
       exclude: [{ method: RequestMethod.ALL, path: 'health' }],
     }),
     PrismaModule,
@@ -106,6 +99,14 @@ import { AuthModule } from './modules/auth/auth.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
     {
       provide: APP_FILTER,

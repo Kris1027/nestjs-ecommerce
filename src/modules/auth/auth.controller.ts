@@ -2,7 +2,9 @@ import { Controller, Post, Body, Req, HttpCode, HttpStatus } from '@nestjs/commo
 import type { Request } from 'express';
 import { AuthService, type TokenResponse } from './auth.service';
 import { RegisterDto, LoginDto, RefreshTokenDto } from './dto';
+import { Public } from '../../common/decorators';
 
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
