@@ -7,8 +7,14 @@ import {
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
-import type { UpdateProfileDto } from './dto';
+import type { AdminUpdateUserDto, UpdateProfileDto } from './dto';
 import type { CreateAddressDto, UpdateAddressDto } from './dto';
+import {
+  getPrismaPageArgs,
+  paginate,
+  type PaginatedResult,
+} from '../../common/utils/pagination.util';
+import type { PaginationQuery } from '../../common/dto/pagination.dto';
 
 const profileSelect = {
   id: true,
@@ -45,6 +51,10 @@ type UserAddress = Prisma.AddressGetPayload<{ select: typeof addressSelect }>;
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // ============================================
+  // USER METHODS
+  // ============================================
 
   async getProfile(userId: string): Promise<UserProfile> {
     const user = await this.prisma.user.findUnique({
@@ -103,6 +113,10 @@ export class UsersService {
 
     return { message: 'Password changed successfully' };
   }
+
+  // ============================================
+  // ADDRESS METHODS
+  // ============================================
 
   async getAddresses(userId: string): Promise<UserAddress[]> {
     return this.prisma.address.findMany({
@@ -195,5 +209,77 @@ export class UsersService {
     });
 
     return { message: 'Address deleted successfully' };
+  }
+
+  // ============================================
+  // ADMIN METHODS
+  // ============================================
+
+  async findAll(query: PaginationQuery): Promise<PaginatedResult<UserProfile>> {
+    const { skip, take } = getPrismaPageArgs(query);
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        select: profileSelect,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.user.count(),
+    ]);
+
+    return paginate(users, total, query);
+  }
+
+  async findById(userId: string): Promise<UserProfile> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: profileSelect,
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async adminUpdateUser(userId: string, data: AdminUpdateUserDto): Promise<UserProfile> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: profileSelect,
+    });
+  }
+
+  async softDeleteUser(userId: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isActive: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isActive) {
+      throw new BadRequestException('User is already deactivated');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false },
+    });
+
+    return { message: 'User deactivated successfully' };
   }
 }

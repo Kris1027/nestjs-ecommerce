@@ -8,14 +8,26 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CurrentUser } from '../../common/decorators';
-import { ChangePasswordDto, CreateAddressDto, UpdateAddressDto, UpdateProfileDto } from './dto';
+import { CurrentUser, Roles } from '../../common/decorators';
+import {
+  AdminUpdateUserDto,
+  ChangePasswordDto,
+  CreateAddressDto,
+  UpdateAddressDto,
+  UpdateProfileDto,
+} from './dto';
+import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // ============================================
+  // USER ENDPOINTS
+  // ============================================
 
   @Get('me')
   getProfile(@CurrentUser('sub') userId: string): ReturnType<UsersService['getProfile']> {
@@ -38,6 +50,10 @@ export class UsersController {
   ): ReturnType<UsersService['changePassword']> {
     return this.usersService.changePassword(userId, dto.currentPassword, dto.newPassword);
   }
+
+  // ============================================
+  // ADDRESS ENDPOINTS
+  // ============================================
 
   @Get('me/addresses')
   getAddresses(@CurrentUser('sub') userId: string): ReturnType<UsersService['getAddresses']> {
@@ -75,5 +91,36 @@ export class UsersController {
     @Param('id') addressId: string,
   ): ReturnType<UsersService['deleteAddress']> {
     return this.usersService.deleteAddress(userId, addressId);
+  }
+
+  // ============================================
+  // ADMIN ENDPOINTS
+  // ============================================
+
+  @Get()
+  @Roles('ADMIN')
+  findAll(@Query() query: PaginationQueryDto): ReturnType<UsersService['findAll']> {
+    return this.usersService.findAll(query);
+  }
+
+  @Get(':id')
+  @Roles('ADMIN')
+  findById(@Param('id') userId: string): ReturnType<UsersService['findById']> {
+    return this.usersService.findById(userId);
+  }
+
+  @Patch(':id')
+  @Roles('ADMIN')
+  adminUpdateUser(
+    @Param('id') userId: string,
+    @Body() dto: AdminUpdateUserDto,
+  ): ReturnType<UsersService['adminUpdateUser']> {
+    return this.usersService.adminUpdateUser(userId, dto);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  softDeleteUser(@Param('id') userId: string): ReturnType<UsersService['softDeleteUser']> {
+    return this.usersService.softDeleteUser(userId);
   }
 }
