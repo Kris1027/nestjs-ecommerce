@@ -14,6 +14,7 @@ import { randomUUID } from 'crypto';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard, RolesGuard } from './common/guards';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { JwtAuthGuard, RolesGuard } from './common/guards';
     }),
     PrismaModule,
     AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [
