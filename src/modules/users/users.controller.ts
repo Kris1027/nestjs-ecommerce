@@ -118,9 +118,16 @@ export class UsersController {
     return this.usersService.adminUpdateUser(userId, dto);
   }
 
+  @Post(':id/deactivate')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  deactivateUser(@Param('id') userId: string): ReturnType<UsersService['deactivateUser']> {
+    return this.usersService.deactivateUser(userId);
+  }
+
   @Delete(':id')
   @Roles('ADMIN')
-  softDeleteUser(@Param('id') userId: string): ReturnType<UsersService['softDeleteUser']> {
-    return this.usersService.softDeleteUser(userId);
+  hardDeleteUser(@Param('id') userId: string): ReturnType<UsersService['hardDeleteUser']> {
+    return this.usersService.hardDeleteUser(userId);
   }
 }

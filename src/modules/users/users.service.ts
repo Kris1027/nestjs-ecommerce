@@ -261,7 +261,7 @@ export class UsersService {
     });
   }
 
-  async softDeleteUser(userId: string): Promise<{ message: string }> {
+  async deactivateUser(userId: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, isActive: true },
@@ -281,5 +281,22 @@ export class UsersService {
     });
 
     return { message: 'User deactivated successfully' };
+  }
+
+  async hardDeleteUser(userId: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+
+    return { message: 'User permanently deleted' };
   }
 }
