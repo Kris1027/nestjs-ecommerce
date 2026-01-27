@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CurrentUser } from '../../common/decorators';
-import { UpdateProfileDto } from './dto';
+import { ChangePasswordDto, UpdateProfileDto } from './dto';
 
 @Controller('users')
 export class UsersController {
@@ -18,5 +18,14 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ): ReturnType<UsersService['updateProfile']> {
     return this.usersService.updateProfile(userId, dto);
+  }
+
+  @Post('me/change-password')
+  @HttpCode(HttpStatus.OK)
+  changePassword(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ): ReturnType<UsersService['changePassword']> {
+    return this.usersService.changePassword(userId, dto.currentPassword, dto.newPassword);
   }
 }
