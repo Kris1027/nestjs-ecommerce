@@ -102,9 +102,57 @@ model Category {
   sortOrder Int     @default(0) @map("sort_order")
 
   // Timestamps
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  products  Product[]
 
   @@index([parentId])
   @@map("categories")
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+
+  // Pricing - Use Decimal, NOT @db.Money (causes rounding issues)
+  price        Decimal  @db.Decimal(10, 2) // Max: 99,999,999.99
+  comparePrice Decimal? @map("compare_price") @db.Decimal(10, 2)
+
+  // Inventory
+  sku   String? @unique // Stock Keeping Unit
+  stock Int     @default(0)
+
+  // Relations
+  categoryId String         @map("category_id")
+  category   Category       @relation(fields: [categoryId], references: [id])
+  images     ProductImage[]
+
+  // Status
+  isActive   Boolean @default(true) @map("is_active")
+  isFeatured Boolean @default(false) @map("is_featured")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([categoryId]) // FK index for relation queries
+  @@index([isActive, isFeatured]) // Compound index for filtered listings
+  @@map("products")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  alt       String? // Accessibility
+  sortOrder Int     @default(0) @map("sort_order")
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([productId]) // FK index for relation queries
+  @@map("product_images")
 }
