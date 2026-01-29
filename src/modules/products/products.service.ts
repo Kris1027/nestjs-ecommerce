@@ -54,27 +54,8 @@ const productDetailSelect = {
   },
 } as const;
 
-// Manual types (avoiding Prisma GetPayload issues)
-type ProductListItem = {
-  id: string;
-  name: string;
-  slug: string;
-  price: Prisma.Decimal;
-  comparePrice: Prisma.Decimal | null;
-  stock: number;
-  isActive: boolean;
-  isFeatured: boolean;
-  createdAt: Date;
-  category: { id: string; name: string; slug: string };
-  images: { id: string; url: string; alt: string | null; sortOrder: number }[];
-};
-
-type ProductDetail = ProductListItem & {
-  description: string | null;
-  sku: string | null;
-  categoryId: string;
-  updatedAt: Date;
-};
+type ProductListItem = Prisma.ProductGetPayload<{ select: typeof productListSelect }>;
+type ProductDetail = Prisma.ProductGetPayload<{ select: typeof productDetailSelect }>;
 
 @Injectable()
 export class ProductsService {

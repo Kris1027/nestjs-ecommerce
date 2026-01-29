@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '../../generated/prisma/client';
 import type { CreateCategoryDto, UpdateCategoryDto } from './dto';
 import {
   getPrismaPageArgs,
@@ -22,18 +23,7 @@ const categorySelect = {
   updatedAt: true,
 } as const;
 
-type CategoryResponse = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  imageUrl: string | null;
-  parentId: string | null;
-  isActive: boolean;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
+type CategoryResponse = Prisma.CategoryGetPayload<{ select: typeof categorySelect }>;
 
 type CategoryWithChildren = CategoryResponse & {
   children: CategoryWithChildren[];

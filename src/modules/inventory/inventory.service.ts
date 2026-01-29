@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { StockMovementType } from '../../generated/prisma/client';
+import { Prisma, StockMovementType } from '../../generated/prisma/client';
 
 // Select for stock info response
 const stockInfoSelect = {
@@ -25,28 +25,12 @@ const movementSelect = {
   createdAt: true,
 } as const;
 
-// Response types
-type StockInfo = {
-  id: string;
-  name: string;
-  sku: string | null;
-  stock: number;
-  reservedStock: number;
-  lowStockThreshold: number;
+type StockInfoBase = Prisma.ProductGetPayload<{ select: typeof stockInfoSelect }>;
+type StockMovement = Prisma.StockMovementGetPayload<{ select: typeof movementSelect }>;
+
+type StockInfo = StockInfoBase & {
   availableStock: number;
   isLowStock: boolean;
-};
-
-type StockMovement = {
-  id: string;
-  productId: string;
-  type: StockMovementType;
-  quantity: number;
-  reason: string | null;
-  stockBefore: number;
-  stockAfter: number;
-  userId: string | null;
-  createdAt: Date;
 };
 
 type StockOperationResult = {
