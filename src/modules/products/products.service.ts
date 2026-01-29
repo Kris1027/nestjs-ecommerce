@@ -6,6 +6,7 @@ import {
   paginate,
   type PaginatedResult,
 } from '../../common/utils/pagination.util';
+import { generateSlug, ensureUniqueSlug } from '../../common/utils/slug.util';
 import { Prisma } from '../../generated/prisma/client';
 
 // Fields to return for product listings (without full description)
@@ -83,38 +84,8 @@ export class ProductsService {
   // HELPER METHODS
   // ============================================
 
-  private generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
-  private async ensureUniqueSlug(slug: string, excludeId?: string): Promise<string> {
-    const MAX_ATTEMPTS = 100;
-    let uniqueSlug = slug;
-    let counter = 1;
-
-    while (counter <= MAX_ATTEMPTS) {
-      const existing = await this.prisma.product.findUnique({
-        where: { slug: uniqueSlug },
-        select: { id: true },
-      });
-
-      if (!existing || existing.id === excludeId) {
-        return uniqueSlug;
-      }
-
-      counter++;
-      uniqueSlug = `${slug}-${counter}`;
-    }
-
-    // If we exhausted all attempts, append timestamp for guaranteed uniqueness
-    return `${slug}-${Date.now()}`;
-  }
+  private slugExists = (slug: string): Promise<{ id: string } | null> =>
+    this.prisma.product.findUnique({ where: { slug }, select: { id: true } });
 
   private async validateCategory(categoryId: string): Promise<void> {
     const category = await this.prisma.category.findUnique({
@@ -222,9 +193,9 @@ export class ProductsService {
     // Validate category
     await this.validateCategory(data.categoryId);
 
-    // Generate slug
-    const baseSlug = data.slug || this.generateSlug(data.name);
-    const slug = await this.ensureUniqueSlug(baseSlug);
+    // Generate unique slug
+    const baseSlug = data.slug || generateSlug(data.name);
+    const slug = await ensureUniqueSlug({ slug: baseSlug, exists: this.slugExists });
 
     // Create product with images
     const product = await this.prisma.product.create({
@@ -273,7 +244,7 @@ export class ProductsService {
     // Handle slug update
     let slug: string | undefined;
     if (data.slug !== undefined) {
-      slug = await this.ensureUniqueSlug(data.slug, id);
+      slug = await ensureUniqueSlug({ slug: data.slug, exists: this.slugExists, excludeId: id });
     }
 
     const updated = await this.prisma.product.update({

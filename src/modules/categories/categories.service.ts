@@ -6,6 +6,7 @@ import {
   paginate,
   type PaginatedResult,
 } from '../../common/utils/pagination.util';
+import { generateSlug, ensureUniqueSlug } from '../../common/utils/slug.util';
 import type { PaginationQuery } from '../../common/dto/pagination.dto';
 
 const categorySelect = {
@@ -46,38 +47,8 @@ export class CategoriesService {
   // HELPER METHODS
   // ============================================
 
-  private generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  }
-
-  private async ensureUniqueSlug(slug: string, excludeId?: string): Promise<string> {
-    const MAX_ATTEMPTS = 100;
-    let uniqueSlug = slug;
-    let counter = 1;
-
-    while (counter <= MAX_ATTEMPTS) {
-      const existing = await this.prisma.category.findUnique({
-        where: { slug: uniqueSlug },
-        select: { id: true },
-      });
-
-      if (!existing || existing.id === excludeId) {
-        return uniqueSlug;
-      }
-
-      counter++;
-      uniqueSlug = `${slug}-${counter}`;
-    }
-
-    // If we exhausted all attempts, append timestamp for guaranteed uniqueness
-    return `${slug}-${Date.now()}`;
-  }
+  private slugExists = (slug: string): Promise<{ id: string } | null> =>
+    this.prisma.category.findUnique({ where: { slug }, select: { id: true } });
 
   private async validateParent(parentId: string): Promise<void> {
     const parent = await this.prisma.category.findUnique({
@@ -168,8 +139,9 @@ export class CategoriesService {
       await this.validateParent(data.parentId);
     }
 
-    const baseSlug = data.slug || this.generateSlug(data.name);
-    const slug = await this.ensureUniqueSlug(baseSlug);
+    // Generate unique slug
+    const baseSlug = data.slug || generateSlug(data.name);
+    const slug = await ensureUniqueSlug({ slug: baseSlug, exists: this.slugExists });
 
     return this.prisma.category.create({
       data: {
@@ -206,7 +178,7 @@ export class CategoriesService {
 
     let slug: string | undefined;
     if (data.slug !== undefined) {
-      slug = await this.ensureUniqueSlug(data.slug, id);
+      slug = await ensureUniqueSlug({ slug: data.slug, exists: this.slugExists, excludeId: id });
     }
 
     return this.prisma.category.update({
