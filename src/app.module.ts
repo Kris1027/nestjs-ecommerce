@@ -17,6 +17,7 @@ import { JwtAuthGuard, RolesGuard } from './common/guards';
 import { UsersModule } from './modules/users/users.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { ProductsModule } from './modules/products/products.module';
     UsersModule,
     CategoriesModule,
     ProductsModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [
