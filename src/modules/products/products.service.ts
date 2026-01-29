@@ -94,10 +94,11 @@ export class ProductsService {
   }
 
   private async ensureUniqueSlug(slug: string, excludeId?: string): Promise<string> {
+    const MAX_ATTEMPTS = 100;
     let uniqueSlug = slug;
     let counter = 1;
 
-    while (true) {
+    while (counter <= MAX_ATTEMPTS) {
       const existing = await this.prisma.product.findUnique({
         where: { slug: uniqueSlug },
         select: { id: true },
@@ -110,6 +111,9 @@ export class ProductsService {
       counter++;
       uniqueSlug = `${slug}-${counter}`;
     }
+
+    // If we exhausted all attempts, append timestamp for guaranteed uniqueness
+    return `${slug}-${Date.now()}`;
   }
 
   private async validateCategory(categoryId: string): Promise<void> {
