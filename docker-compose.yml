@@ -17,7 +17,7 @@ services:
     # Restart on crash, but not if manually stopped
     restart: unless-stopped
     ports:
-      # host:container — access from host at localhost:5432
+      # host:container — access from host at localhost:5433
       - '5433:5432'
     environment:
       # These create the database and user on first launch
