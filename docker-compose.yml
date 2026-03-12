@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     ports:
       # host:container — access from host at localhost:5432
-      - '5432:5432'
+      - '5433:5432'
     environment:
       # These create the database and user on first launch
       # Values sourced from .env with local dev defaults
@@ -91,9 +91,10 @@ services:
       - ./prisma:/app/prisma
       # Anonymous volume prevents host node_modules from overriding container's
       - /app/node_modules
-    # Generate Prisma client before starting dev server
-    # Needed because ./src bind mount shadows the build-time generated client
-    command: sh -c "pnpm prisma generate && pnpm run start:dev"
+    # 1. Generate Prisma client (bind mount shadows the build-time generated client)
+    # 2. Deploy migrations to create/update database tables
+    # 3. Start dev server with hot reload
+    command: sh -c "pnpm prisma generate && pnpm prisma migrate deploy && pnpm run start:dev"
     networks:
       - app-network
 

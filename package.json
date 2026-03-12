@@ -47,7 +47,8 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f app",
     "docker:build": "docker compose up -d --build",
-    "docker:clean": "docker compose down -v"
+    "docker:clean": "docker compose down -v",
+    "swagger:export": "tsx scripts/swagger-export.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",
