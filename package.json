@@ -23,7 +23,7 @@
     "rest-api"
   ],
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=22.13.0",
     "pnpm": ">=10.0.0"
   },
   "license": "SEE LICENSE IN LICENSE",

@@ -518,19 +518,23 @@ async function main(): Promise<void> {
   // 5. STOCK MOVEMENTS (~30)
   // ============================================
 
-  const stockMovements: Parameters<typeof prisma.stockMovement.create>[0]['data'][] = [];
+  // Track running stock per product for consistent stockBefore/After
+  const runningStock = new Map<string, number>();
 
   // Initial restocks for all products
   for (const product of products) {
     if (product.stock > 0) {
-      stockMovements.push({
-        productId: product.id,
-        type: StockMovementType.RESTOCK,
-        quantity: product.stock + 10, // originally had more
-        reason: 'Initial inventory',
-        stockBefore: 0,
-        stockAfter: product.stock + 10,
-        userId: admin.id,
+      runningStock.set(product.id, product.stock);
+      await prisma.stockMovement.create({
+        data: {
+          productId: product.id,
+          type: StockMovementType.RESTOCK,
+          quantity: product.stock,
+          reason: 'Initial inventory',
+          stockBefore: 0,
+          stockAfter: product.stock,
+          userId: admin.id,
+        },
       });
     }
   }
@@ -551,27 +555,29 @@ async function main(): Promise<void> {
           ? faker.number.int({ min: 1, max: 2 })
           : -faker.number.int({ min: 1, max: 5 });
 
-    stockMovements.push({
-      productId: product.id,
-      type,
-      quantity: qty,
-      reason:
-        type === StockMovementType.SALE
-          ? 'Order fulfillment'
-          : type === StockMovementType.RETURN
-            ? 'Customer return'
-            : 'Inventory adjustment',
-      stockBefore: product.stock,
-      stockAfter: product.stock + qty,
-      userId: type === StockMovementType.SALE ? null : admin.id,
+    const stockBefore = runningStock.get(product.id) ?? product.stock;
+    const stockAfter = stockBefore + qty;
+    runningStock.set(product.id, stockAfter);
+
+    await prisma.stockMovement.create({
+      data: {
+        productId: product.id,
+        type,
+        quantity: qty,
+        reason:
+          type === StockMovementType.SALE
+            ? 'Order fulfillment'
+            : type === StockMovementType.RETURN
+              ? 'Customer return'
+              : 'Inventory adjustment',
+        stockBefore,
+        stockAfter,
+        userId: type === StockMovementType.SALE ? null : admin.id,
+      },
     });
   }
 
-  for (const data of stockMovements) {
-    await prisma.stockMovement.create({ data });
-  }
-
-  console.log(`Seeded ${stockMovements.length} stock movements`);
+  console.log(`Seeded ${runningStock.size + 8} stock movements`);
 
   // ============================================
   // 6. SHIPPING METHODS + TAX RATES
@@ -647,7 +653,7 @@ async function main(): Promise<void> {
       maximumDiscount: 500.0,
       usageLimit: 100,
       usageLimitPerUser: 1,
-      usageCount: 5,
+      usageCount: 3,
       validFrom: oneMonthAgo,
       validUntil: twoMonthsFromNow,
       isActive: true,
@@ -663,7 +669,7 @@ async function main(): Promise<void> {
       minimumOrderAmount: 200.0,
       usageLimit: 50,
       usageLimitPerUser: 1,
-      usageCount: 12,
+      usageCount: 1,
       validFrom: oneMonthAgo,
       validUntil: oneMonthFromNow,
       isActive: true,
@@ -750,11 +756,6 @@ async function main(): Promise<void> {
 
   const shippingMethods = [shippingStandard, shippingExpress];
   const ordersCreated: Awaited<ReturnType<typeof prisma.order.create>>[] = [];
-  const orderItemsData: {
-    orderId: string;
-    product: (typeof products)[number];
-    quantity: number;
-  }[] = [];
 
   // Spread orders across March 1–18
   const orderDates = Array.from({ length: orderStatuses.length }, (_, i) => {
@@ -851,13 +852,6 @@ async function main(): Promise<void> {
     });
 
     ordersCreated.push(order);
-    for (const product of orderProducts) {
-      orderItemsData.push({
-        orderId: order.id,
-        product,
-        quantity: items.find((it) => it.productId === product.id)!.quantity,
-      });
-    }
   }
 
   console.log(`Seeded ${ordersCreated.length} orders`);
