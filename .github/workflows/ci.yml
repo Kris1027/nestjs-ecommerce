@@ -25,7 +25,8 @@ env:
   STRIPE_WEBHOOK_SECRET: whsec_ci_fake_secret_for_validation
   RESEND_API_KEY: re_ci_fake_key_for_validation
   EMAIL_FROM: ci-test@example.com
-  FRONTEND_URL: http://localhost:3000
+  STORE_URL: http://localhost:3002
+  ADMIN_URL: http://localhost:3001
   REDIS_URL: redis://localhost:6379
 
 jobs:

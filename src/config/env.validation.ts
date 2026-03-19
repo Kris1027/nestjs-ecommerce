@@ -17,7 +17,8 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
   RESEND_API_KEY: z.string().startsWith('re_'),
   EMAIL_FROM: z.email(),
-  FRONTEND_URL: z.url(),
+  STORE_URL: z.url(),
+  ADMIN_URL: z.url(),
   REDIS_URL: z.url(),
 });
 

@@ -125,7 +125,7 @@ export class AuthService {
       },
     });
 
-    const verifyUrl = `${this.configService.get('FRONTEND_URL')}/verify-email?token=${rawToken}`;
+    const verifyUrl = `${this.configService.get('STORE_URL')}/verify-email?token=${rawToken}`;
     const { subject, html } = emailVerificationEmail(firstName, verifyUrl);
 
     await this.emailService.send(email, subject, html);
@@ -267,7 +267,7 @@ export class AuthService {
       },
     });
 
-    const resetUrl = `${this.configService.get('FRONTEND_URL')}/reset-password?token=${rawToken}`;
+    const resetUrl = `${this.configService.get('STORE_URL')}/reset-password?token=${rawToken}`;
     const { subject, html } = passwordResetEmail(user.firstName, resetUrl);
 
     await this.emailService.send(user.email, subject, html);

@@ -19,6 +19,7 @@ async function bootstrap(): Promise<void> {
     origin: env.CORS_ORIGIN ?? true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    exposedHeaders: ['x-guest-cart-token'],
   });
 
   app.use(compression());
