@@ -41,16 +41,10 @@ export class CategoriesController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'List categories with optional isActive filter' })
-  @ApiQuery({
-    name: 'isActive',
-    required: false,
-    type: String,
-    description: 'Filter by active status ("true", "false", or "all"). Default: "true"',
-  })
+  @ApiOperation({ summary: 'List all active categories (public)' })
   @ApiPaginatedResponse(CategoryResponseDto, 'Paginated category list')
   findAll(@Query() query: CategoryQueryDto): ReturnType<CategoriesService['findAll']> {
-    return this.categoriesService.findAll(query);
+    return this.categoriesService.findAll({ ...query, isActive: true });
   }
 
   @Get('tree')
@@ -60,6 +54,22 @@ export class CategoriesController {
   @ApiErrorResponses(429)
   findAllTree(): ReturnType<CategoriesService['findAllTree']> {
     return this.categoriesService.findAllTree();
+  }
+
+  @Get('manage')
+  @Roles('ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'List categories with isActive filter (admin)' })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    enum: ['true', 'false', 'all'],
+    description: 'Filter by active status. Default: "true"',
+  })
+  @ApiPaginatedResponse(CategoryResponseDto, 'Paginated category list')
+  @ApiErrorResponses(401, 403)
+  findAllAdmin(@Query() query: CategoryQueryDto): ReturnType<CategoriesService['findAll']> {
+    return this.categoriesService.findAll(query);
   }
 
   @Get(':slug')

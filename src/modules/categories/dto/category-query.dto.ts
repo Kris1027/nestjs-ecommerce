@@ -3,7 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import { PaginationQuerySchema } from '../../../common/dto/pagination.dto';
 
 const isActiveSchema = z
-  .string()
+  .enum(['true', 'false', 'all'])
   .default('true')
   .transform((val) => {
     if (val === 'all') {

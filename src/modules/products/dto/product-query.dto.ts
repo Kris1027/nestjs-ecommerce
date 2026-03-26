@@ -22,7 +22,7 @@ const productQuerySchema = PaginationQuerySchema.extend({
     .transform((val) => val === 'true')
     .optional(),
   isActive: z
-    .string()
+    .enum(['true', 'false', 'all'])
     .default('true')
     .transform((val) => {
       if (val === 'all') {

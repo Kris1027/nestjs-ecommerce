@@ -44,14 +44,14 @@ describe('ProductsController', () => {
   // ============================================
 
   describe('findAll', () => {
-    it('should call productsService.findAll with query params', async () => {
+    it('should always pass isActive: true for public endpoint', async () => {
       const query = { page: 1, limit: 10, sortOrder: 'desc' as const };
       const expected = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
       service.findAll.mockResolvedValue(expected);
 
       const result = await controller.findAll(query as any);
 
-      expect(service.findAll).toHaveBeenCalledWith(query);
+      expect(service.findAll).toHaveBeenCalledWith({ ...query, isActive: true });
       expect(result).toEqual(expected);
     });
   });
@@ -71,6 +71,24 @@ describe('ProductsController', () => {
   // ============================================
   // ADMIN ENDPOINTS
   // ============================================
+
+  describe('findAllAdmin', () => {
+    it('should pass isActive filter through to service', async () => {
+      const query = {
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc' as const,
+        isActive: undefined as boolean | undefined,
+      };
+      const expected = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      service.findAll.mockResolvedValue(expected);
+
+      const result = await controller.findAllAdmin(query as any);
+
+      expect(service.findAll).toHaveBeenCalledWith(query);
+      expect(result).toEqual(expected);
+    });
+  });
 
   describe('create', () => {
     it('should call productsService.create with the DTO', async () => {
