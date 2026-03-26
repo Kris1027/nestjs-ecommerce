@@ -44,7 +44,12 @@ describe('CategoriesController', () => {
 
   describe('findAll', () => {
     it('should call categoriesService.findAll with query params', async () => {
-      const query = { page: 1, limit: 10, sortOrder: 'desc' as const };
+      const query = {
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc' as const,
+        isActive: true as boolean | undefined,
+      };
       const expected = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
       service.findAll.mockResolvedValue(expected);
 

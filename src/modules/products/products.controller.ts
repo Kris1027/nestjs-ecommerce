@@ -92,6 +92,12 @@ export class ProductsController {
     type: String,
     description: 'Filter featured products ("true" or "false")',
   })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: String,
+    description: 'Filter by active status ("true", "false", or "all"). Default: "true"',
+  })
   @ApiPaginatedResponse(ProductListItemDto, 'Paginated product list')
   findAll(@Query() query: ProductQueryDto): ReturnType<ProductsService['findAll']> {
     return this.productsService.findAll(query);

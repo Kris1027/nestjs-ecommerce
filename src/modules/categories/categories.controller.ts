@@ -20,13 +20,13 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
   ApiConsumes,
   ApiBody,
 } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 import { Public, Roles } from '../../common/decorators';
-import { CreateCategoryDto, UpdateCategoryDto, CategoryResponseDto } from './dto';
-import { PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { CreateCategoryDto, UpdateCategoryDto, CategoryResponseDto, CategoryQueryDto } from './dto';
 import { multerConfig } from '../cloudinary/multer.config';
 import { ApiSuccessResponse, ApiPaginatedResponse, ApiErrorResponses } from '../../common/swagger';
 
@@ -41,9 +41,15 @@ export class CategoriesController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'List all active categories (public)' })
+  @ApiOperation({ summary: 'List categories with optional isActive filter' })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    type: String,
+    description: 'Filter by active status ("true", "false", or "all"). Default: "true"',
+  })
   @ApiPaginatedResponse(CategoryResponseDto, 'Paginated category list')
-  findAll(@Query() query: PaginationQueryDto): ReturnType<CategoriesService['findAll']> {
+  findAll(@Query() query: CategoryQueryDto): ReturnType<CategoriesService['findAll']> {
     return this.categoriesService.findAll(query);
   }
 
