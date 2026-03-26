@@ -97,7 +97,7 @@ export class ProductsService {
 
     // Build where clause with filters
     const where: {
-      isActive: boolean;
+      isActive?: boolean;
       categoryId?: string;
       isFeatured?: boolean;
       price?: { gte?: number; lte?: number };
@@ -105,9 +105,11 @@ export class ProductsService {
         name?: { contains: string; mode: 'insensitive' };
         description?: { contains: string; mode: 'insensitive' };
       }[];
-    } = {
-      isActive: true,
-    };
+    } = {};
+
+    if (query.isActive !== undefined) {
+      where.isActive = query.isActive;
+    }
 
     if (query.categoryId) {
       where.categoryId = query.categoryId;

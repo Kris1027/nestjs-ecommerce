@@ -21,6 +21,15 @@ const productQuerySchema = PaginationQuerySchema.extend({
     .string()
     .transform((val) => val === 'true')
     .optional(),
+  isActive: z
+    .string()
+    .default('true')
+    .transform((val) => {
+      if (val === 'all') {
+        return undefined;
+      }
+      return val === 'true';
+    }),
 });
 
 export class ProductQueryDto extends createZodDto(productQuerySchema) {}

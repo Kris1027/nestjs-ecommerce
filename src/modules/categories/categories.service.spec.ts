@@ -54,7 +54,12 @@ describe('CategoriesService', () => {
       prisma.category.findMany.mockResolvedValue([mockCategory]);
       prisma.category.count.mockResolvedValue(1);
 
-      const result = await service.findAll({ page: 1, limit: 10, sortOrder: 'desc' });
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+      });
 
       expect(result.data).toEqual([mockCategory]);
       expect(result.meta).toEqual(expect.objectContaining({ total: 1, page: 1, limit: 10 }));

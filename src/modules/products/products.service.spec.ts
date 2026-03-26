@@ -71,7 +71,12 @@ describe('ProductsService', () => {
       prisma.product.findMany.mockResolvedValue([mockProductList]);
       prisma.product.count.mockResolvedValue(1);
 
-      const result = await service.findAll({ page: 1, limit: 10, sortOrder: 'desc' });
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+      });
 
       expect(result.data).toEqual([mockProductList]);
       expect(result.meta).toEqual(expect.objectContaining({ total: 1, page: 1, limit: 10 }));
@@ -92,6 +97,7 @@ describe('ProductsService', () => {
         page: 1,
         limit: 10,
         sortOrder: 'desc',
+        isActive: true,
         categoryId: 'clcat1234567890123456789',
       });
 
@@ -106,7 +112,13 @@ describe('ProductsService', () => {
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);
 
-      await service.findAll({ page: 1, limit: 10, sortOrder: 'desc', isFeatured: true });
+      await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        isFeatured: true,
+      });
 
       expect(prisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -123,6 +135,7 @@ describe('ProductsService', () => {
         page: 1,
         limit: 10,
         sortOrder: 'desc',
+        isActive: true,
         minPrice: 100,
         maxPrice: 500,
       });
@@ -138,7 +151,13 @@ describe('ProductsService', () => {
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);
 
-      await service.findAll({ page: 1, limit: 10, sortOrder: 'desc', search: 'iphone' });
+      await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        search: 'iphone',
+      });
 
       expect(prisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -156,7 +175,13 @@ describe('ProductsService', () => {
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);
 
-      await service.findAll({ page: 1, limit: 10, sortBy: 'price', sortOrder: 'asc' });
+      await service.findAll({
+        page: 1,
+        limit: 10,
+        sortBy: 'price',
+        sortOrder: 'asc',
+        isActive: true,
+      });
 
       expect(prisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

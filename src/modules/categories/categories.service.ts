@@ -1,14 +1,13 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
-import type { CreateCategoryDto, UpdateCategoryDto } from './dto';
+import type { CreateCategoryDto, UpdateCategoryDto, CategoryQuery } from './dto';
 import {
   getPrismaPageArgs,
   paginate,
   type PaginatedResult,
 } from '../../common/utils/pagination.util';
 import { generateSlug, ensureUniqueSlug } from '../../common/utils/slug.util';
-import type { PaginationQuery } from '../../common/dto/pagination.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 const categorySelect = {
@@ -66,18 +65,20 @@ export class CategoriesService {
   // PUBLIC METHODS
   // ============================================
 
-  async findAll(query: PaginationQuery): Promise<PaginatedResult<CategoryResponse>> {
+  async findAll(query: CategoryQuery): Promise<PaginatedResult<CategoryResponse>> {
     const { skip, take } = getPrismaPageArgs(query);
+
+    const where = query.isActive !== undefined ? { isActive: query.isActive } : {};
 
     const [categories, total] = await Promise.all([
       this.prisma.category.findMany({
-        where: { isActive: true },
+        where,
         select: categorySelect,
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         skip,
         take,
       }),
-      this.prisma.category.count({ where: { isActive: true } }),
+      this.prisma.category.count({ where }),
     ]);
 
     return paginate(categories, total, query);
