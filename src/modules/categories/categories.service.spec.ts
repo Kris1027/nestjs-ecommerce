@@ -1,25 +1,38 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CategoriesService } from './categories.service';
 import { createMockPrismaClient, resetMockPrismaClient } from '@test/mocks/prisma.mock';
-import { createMockCloudinaryService } from '@test/mocks/common.mock';
+import {
+  createMockCloudinaryService,
+  createMockEventEmitter,
+  createMockCacheService,
+} from '@test/mocks/common.mock';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CacheService } from '../cache/cache.service';
+import { CacheEvents } from '../cache/cache.events';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('CategoriesService', () => {
   let service: CategoriesService;
   let prisma: ReturnType<typeof createMockPrismaClient>;
   let cloudinaryService: ReturnType<typeof createMockCloudinaryService>;
+  let cacheService: ReturnType<typeof createMockCacheService>;
+  let eventEmitter: ReturnType<typeof createMockEventEmitter>;
 
   beforeEach(async () => {
     prisma = createMockPrismaClient();
     cloudinaryService = createMockCloudinaryService();
+    cacheService = createMockCacheService();
+    eventEmitter = createMockEventEmitter();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CategoriesService,
         { provide: PrismaService, useValue: prisma },
         { provide: CloudinaryService, useValue: cloudinaryService },
+        { provide: CacheService, useValue: cacheService },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -74,6 +87,16 @@ describe('CategoriesService', () => {
   });
 
   describe('findAllTree', () => {
+    it('should return cached tree on cache hit', async () => {
+      const cachedTree = [{ ...mockCategory, children: [] }];
+      cacheService.get.mockResolvedValue(cachedTree);
+
+      const result = await service.findAllTree();
+
+      expect(result).toEqual(cachedTree);
+      expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
     it('should return hierarchical tree of active categories', async () => {
       const parent = { ...mockCategory };
       const child = {
@@ -113,6 +136,15 @@ describe('CategoriesService', () => {
   });
 
   describe('findBySlug', () => {
+    it('should return cached category on cache hit', async () => {
+      cacheService.get.mockResolvedValue(mockCategory);
+
+      const result = await service.findBySlug('electronics');
+
+      expect(result).toEqual(mockCategory);
+      expect(prisma.category.findUnique).not.toHaveBeenCalled();
+    });
+
     it('should return category by slug', async () => {
       prisma.category.findUnique.mockResolvedValue(mockCategory);
 
@@ -183,6 +215,18 @@ describe('CategoriesService', () => {
       });
     });
 
+    it('should emit CATEGORY_CHANGED event after creation', async () => {
+      prisma.category.findUnique.mockResolvedValue(null);
+      prisma.category.create.mockResolvedValue(mockCategory);
+
+      await service.create({ name: 'Electronics', sortOrder: 0 });
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.CATEGORY_CHANGED,
+        expect.objectContaining({ categoryId: mockCategory.id, action: 'create' }),
+      );
+    });
+
     it('should throw NotFoundException if parent does not exist', async () => {
       prisma.category.findUnique.mockResolvedValue(null);
 
@@ -213,6 +257,18 @@ describe('CategoriesService', () => {
       const result = await service.update(mockCategory.id, { name: 'Updated Electronics' });
 
       expect(result).toEqual(updated);
+    });
+
+    it('should emit CATEGORY_CHANGED event after update', async () => {
+      prisma.category.findUnique.mockResolvedValue({ id: mockCategory.id });
+      prisma.category.update.mockResolvedValue(mockCategory);
+
+      await service.update(mockCategory.id, { name: 'Updated Electronics' });
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.CATEGORY_CHANGED,
+        expect.objectContaining({ categoryId: mockCategory.id, action: 'update' }),
+      );
     });
 
     it('should throw NotFoundException if category not found', async () => {
@@ -289,6 +345,18 @@ describe('CategoriesService', () => {
       });
     });
 
+    it('should emit CATEGORY_CHANGED event after deactivation', async () => {
+      prisma.category.findUnique.mockResolvedValue({ id: mockCategory.id, isActive: true });
+      prisma.category.update.mockResolvedValue({} as never);
+
+      await service.deactivate(mockCategory.id);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.CATEGORY_CHANGED,
+        expect.objectContaining({ categoryId: mockCategory.id, action: 'deactivate' }),
+      );
+    });
+
     it('should throw NotFoundException if category not found', async () => {
       prisma.category.findUnique.mockResolvedValue(null);
 
@@ -317,6 +385,21 @@ describe('CategoriesService', () => {
       expect(result).toEqual({ message: 'Category permanently deleted' });
       expect(prisma.category.delete).toHaveBeenCalledWith({ where: { id: mockCategory.id } });
       expect(cloudinaryService.deleteImage).not.toHaveBeenCalled();
+    });
+
+    it('should emit CATEGORY_CHANGED event after deletion', async () => {
+      prisma.category.findUnique.mockResolvedValue({
+        id: mockCategory.id,
+        cloudinaryPublicId: null,
+      });
+      prisma.category.delete.mockResolvedValue({} as never);
+
+      await service.hardDelete(mockCategory.id);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.CATEGORY_CHANGED,
+        expect.objectContaining({ categoryId: mockCategory.id, action: 'delete' }),
+      );
     });
 
     it('should delete cloudinary image when present', async () => {
