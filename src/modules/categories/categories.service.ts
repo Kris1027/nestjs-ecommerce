@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
 import type { CreateCategoryDto, UpdateCategoryDto, CategoryQuery } from './dto';
@@ -9,6 +10,9 @@ import {
 } from '../../common/utils/pagination.util';
 import { generateSlug, ensureUniqueSlug } from '../../common/utils/slug.util';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CacheService } from '../cache/cache.service';
+import { CACHE_PREFIXES, CACHE_TTL } from '../cache/cache.constants';
+import { CacheEvents, CategoryChangedEvent } from '../cache/cache.events';
 
 const categorySelect = {
   id: true,
@@ -37,6 +41,8 @@ export class CategoriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly cacheService: CacheService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ============================================
@@ -85,6 +91,12 @@ export class CategoriesService {
   }
 
   async findAllTree(): Promise<CategoryWithChildren[]> {
+    const cacheKey = CACHE_PREFIXES.CATEGORIES_TREE;
+    const cached = await this.cacheService.get<CategoryWithChildren[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const categories = await this.prisma.category.findMany({
       where: { isActive: true },
       select: categorySelect,
@@ -108,10 +120,18 @@ export class CategoriesService {
       }
     }
 
+    await this.cacheService.set(cacheKey, roots, CACHE_TTL.CATEGORIES_TREE);
+
     return roots;
   }
 
   async findBySlug(slug: string): Promise<CategoryResponse> {
+    const cacheKey = `${CACHE_PREFIXES.CATEGORIES_DETAIL}:${slug}`;
+    const cached = await this.cacheService.get<CategoryResponse>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const category = await this.prisma.category.findUnique({
       where: { slug },
       select: categorySelect,
@@ -124,6 +144,8 @@ export class CategoriesService {
     if (!category.isActive) {
       throw new NotFoundException('Category not found');
     }
+
+    await this.cacheService.set(cacheKey, category, CACHE_TTL.CATEGORIES_DETAIL);
 
     return category;
   }
@@ -141,7 +163,7 @@ export class CategoriesService {
     const baseSlug = data.slug || generateSlug(data.name);
     const slug = await ensureUniqueSlug({ slug: baseSlug, exists: this.slugExists });
 
-    return this.prisma.category.create({
+    const category = await this.prisma.category.create({
       data: {
         name: data.name,
         slug,
@@ -152,6 +174,13 @@ export class CategoriesService {
       },
       select: categorySelect,
     });
+
+    this.eventEmitter.emit(
+      CacheEvents.CATEGORY_CHANGED,
+      new CategoryChangedEvent(category.id, 'create'),
+    );
+
+    return category;
   }
 
   async update(id: string, data: UpdateCategoryDto): Promise<CategoryResponse> {
@@ -179,7 +208,7 @@ export class CategoriesService {
       slug = await ensureUniqueSlug({ slug: data.slug, exists: this.slugExists, excludeId: id });
     }
 
-    return this.prisma.category.update({
+    const updated = await this.prisma.category.update({
       where: { id },
       data: {
         ...data,
@@ -187,6 +216,10 @@ export class CategoriesService {
       },
       select: categorySelect,
     });
+
+    this.eventEmitter.emit(CacheEvents.CATEGORY_CHANGED, new CategoryChangedEvent(id, 'update'));
+
+    return updated;
   }
 
   async deactivate(id: string): Promise<{ message: string }> {
@@ -208,6 +241,11 @@ export class CategoriesService {
       data: { isActive: false },
     });
 
+    this.eventEmitter.emit(
+      CacheEvents.CATEGORY_CHANGED,
+      new CategoryChangedEvent(id, 'deactivate'),
+    );
+
     return { message: 'Category deactivated successfully' };
   }
 
@@ -224,6 +262,8 @@ export class CategoriesService {
     await this.prisma.category.delete({
       where: { id },
     });
+
+    this.eventEmitter.emit(CacheEvents.CATEGORY_CHANGED, new CategoryChangedEvent(id, 'delete'));
 
     // Clean up Cloudinary image (skip for legacy URL-only images)
     if (category.cloudinaryPublicId) {
@@ -263,6 +303,11 @@ export class CategoriesService {
         },
         select: categorySelect,
       });
+
+      this.eventEmitter.emit(
+        CacheEvents.CATEGORY_CHANGED,
+        new CategoryChangedEvent(id, 'image_change'),
+      );
 
       // Step 3: Delete old Cloudinary image after successful DB update
       if (category.cloudinaryPublicId) {
