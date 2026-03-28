@@ -16,10 +16,11 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Payments**       | Stripe (PaymentIntents + webhooks)          |
 | **File Storage**   | Cloudinary (auto-optimized uploads)         |
 | **Email**          | Resend (transactional email API)            |
+| **Caching**        | Redis + cache-manager (Keyv adapter)        |
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
-| **Testing**        | Jest 30 (41 suites, 605+ tests)             |
+| **Testing**        | Jest 30 (43 suites, 639+ tests)             |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (lint, test, build)          |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
@@ -119,7 +120,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 
 - **Dual-channel delivery** — in-app (database) + email (Resend)
 - **15 email templates** — welcome, order lifecycle, payment confirmations, refund updates, low stock alerts
-- **Event-driven architecture** — 11 event types with 4 dedicated listeners (auth, orders, payments, inventory)
+- **Event-driven architecture** — 13 event types with 5 dedicated listeners (auth, orders, payments, inventory, cache invalidation)
 - Unread count badge, mark as read (single/all), notification preferences (opt-out model)
 - Admin broadcast for low stock alerts (sent to all active admins)
 - Idempotency check (prevents duplicate notifications within 1 minute)
@@ -149,10 +150,19 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 - Organized by folder (`products/`, `categories/`)
 - Cleanup on image removal and entity hard delete
 
+### Caching (Redis)
+
+- **Cache-aside pattern** on high-traffic public endpoints — transparent to clients
+- Product listings (5 min TTL), product detail by slug (10 min TTL)
+- Category listings (10 min TTL), category tree (30 min TTL), category detail by slug (10 min TTL)
+- **Event-driven invalidation** — cache cleared automatically on product/category mutations
+- Indirect invalidation on order creation, status changes, and stock adjustments
+- Error-resilient — Redis failures degrade gracefully to direct database queries
+
 ### Health Checks
 
 - `GET /health` — liveness probe (app is running)
-- `GET /health/ready` — readiness probe (database + Redis connectivity)
+- `GET /health/ready` — readiness probe (database + Redis + cache layer connectivity)
 
 ---
 
@@ -320,7 +330,7 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **41 test suites** with **605+ unit tests**
+- **43 test suites** with **639+ unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
@@ -334,7 +344,7 @@ GitHub Actions runs **3 parallel jobs** on every PR and push to main:
 | Job       | Timeout | Description                          |
 | --------- | ------- | ------------------------------------ |
 | **Lint**  | 5 min   | ESLint checks                        |
-| **Test**  | 10 min  | All 605+ unit tests via Jest         |
+| **Test**  | 10 min  | All 639+ unit tests via Jest         |
 | **Build** | 5 min   | TypeScript compilation (type safety) |
 
 - pnpm dependency caching for fast runs
@@ -374,6 +384,7 @@ src/
 │   ├── tax/                # Tax rate configuration
 │   ├── notifications/      # In-app + email notifications, event listeners
 │   ├── cloudinary/         # Image upload service
+│   ├── cache/              # Redis caching with event-driven invalidation
 │   ├── queue/              # BullMQ email & cleanup processors
 │   └── health/             # Liveness & readiness probes
 ├── prisma/
