@@ -52,6 +52,16 @@ export class CategoriesService {
   private slugExists = (slug: string): Promise<{ id: string } | null> =>
     this.prisma.category.findUnique({ where: { slug }, select: { id: true } });
 
+  private buildCategoryListCacheKey(query: CategoryQuery): string {
+    const params = Object.entries(query)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${String(v)}`)
+      .join('&');
+
+    return `${CACHE_PREFIXES.CATEGORIES_LIST}:${params}`;
+  }
+
   private async validateParent(parentId: string): Promise<void> {
     const parent = await this.prisma.category.findUnique({
       where: { id: parentId },
@@ -72,6 +82,12 @@ export class CategoriesService {
   // ============================================
 
   async findAll(query: CategoryQuery): Promise<PaginatedResult<CategoryResponse>> {
+    const cacheKey = this.buildCategoryListCacheKey(query);
+    const cached = await this.cacheService.get<PaginatedResult<CategoryResponse>>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const { skip, take } = getPrismaPageArgs(query);
 
     const where = query.isActive !== undefined ? { isActive: query.isActive } : {};
@@ -87,7 +103,10 @@ export class CategoriesService {
       this.prisma.category.count({ where }),
     ]);
 
-    return paginate(categories, total, query);
+    const result = paginate(categories, total, query);
+    await this.cacheService.set(cacheKey, result, CACHE_TTL.CATEGORIES_LIST);
+
+    return result;
   }
 
   async findAllTree(): Promise<CategoryWithChildren[]> {

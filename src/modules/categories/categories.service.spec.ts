@@ -63,6 +63,44 @@ describe('CategoriesService', () => {
   });
 
   describe('findAll', () => {
+    it('should return cached result on cache hit', async () => {
+      const cachedResult = {
+        data: [mockCategory],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
+      cacheService.get.mockResolvedValue(cachedResult);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+      });
+
+      expect(result).toEqual(cachedResult);
+      expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should cache result on miss and return it', async () => {
+      prisma.category.findMany.mockResolvedValue([mockCategory]);
+      prisma.category.count.mockResolvedValue(1);
+
+      await service.findAll({ page: 1, limit: 10, sortOrder: 'desc', isActive: true });
+
+      expect(cacheService.set).toHaveBeenCalledWith(
+        expect.stringContaining('cache:categories:list:'),
+        expect.objectContaining({ data: [mockCategory] }),
+        expect.any(Number),
+      );
+    });
+
     it('should return paginated active categories', async () => {
       prisma.category.findMany.mockResolvedValue([mockCategory]);
       prisma.category.count.mockResolvedValue(1);
@@ -95,6 +133,18 @@ describe('CategoriesService', () => {
 
       expect(result).toEqual(cachedTree);
       expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should cache tree on miss', async () => {
+      prisma.category.findMany.mockResolvedValue([mockCategory]);
+
+      await service.findAllTree();
+
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'cache:categories:tree',
+        expect.any(Array),
+        expect.any(Number),
+      );
     });
 
     it('should return hierarchical tree of active categories', async () => {
@@ -145,7 +195,7 @@ describe('CategoriesService', () => {
       expect(prisma.category.findUnique).not.toHaveBeenCalled();
     });
 
-    it('should return category by slug', async () => {
+    it('should return category by slug and cache it', async () => {
       prisma.category.findUnique.mockResolvedValue(mockCategory);
 
       const result = await service.findBySlug('electronics');
@@ -155,6 +205,11 @@ describe('CategoriesService', () => {
         where: { slug: 'electronics' },
         select: expect.objectContaining({ id: true, name: true, slug: true }),
       });
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'cache:categories:detail:electronics',
+        mockCategory,
+        expect.any(Number),
+      );
     });
 
     it('should throw NotFoundException if category not found', async () => {

@@ -106,7 +106,7 @@ describe('ProductsService', () => {
       expect(prisma.product.count).not.toHaveBeenCalled();
     });
 
-    it('should return paginated active products', async () => {
+    it('should return paginated active products and cache result', async () => {
       prisma.product.findMany.mockResolvedValue([mockProductList]);
       prisma.product.count.mockResolvedValue(1);
 
@@ -119,6 +119,11 @@ describe('ProductsService', () => {
 
       expect(result.data).toEqual([mockProductList]);
       expect(result.meta).toEqual(expect.objectContaining({ total: 1, page: 1, limit: 10 }));
+      expect(cacheService.set).toHaveBeenCalledWith(
+        expect.stringContaining('cache:products:list:'),
+        expect.objectContaining({ data: [mockProductList] }),
+        expect.any(Number),
+      );
       expect(prisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { isActive: true },
@@ -240,7 +245,7 @@ describe('ProductsService', () => {
       expect(prisma.product.findUnique).not.toHaveBeenCalled();
     });
 
-    it('should return product by slug', async () => {
+    it('should return product by slug and cache it', async () => {
       prisma.product.findUnique.mockResolvedValue(mockProduct);
 
       const result = await service.findBySlug('iphone-15');
@@ -250,6 +255,11 @@ describe('ProductsService', () => {
         where: { slug: 'iphone-15' },
         select: expect.objectContaining({ id: true, name: true, description: true }),
       });
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'cache:products:detail:iphone-15',
+        mockProduct,
+        expect.any(Number),
+      );
     });
 
     it('should throw NotFoundException if product not found', async () => {
