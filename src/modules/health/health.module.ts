@@ -5,6 +5,7 @@ import { HealthController } from './health.controller';
 // Custom health indicators to check service connectivity
 import { PrismaHealthIndicator } from './indicators/prisma.health';
 import { RedisHealthIndicator } from './indicators/redis.health';
+import { CacheHealthIndicator } from './indicators/cache.health';
 
 @Module({
   imports: [TerminusModule],
@@ -14,6 +15,8 @@ import { RedisHealthIndicator } from './indicators/redis.health';
     PrismaHealthIndicator,
     // Redis/queue connectivity check
     RedisHealthIndicator,
+    // Cache layer read/write check
+    CacheHealthIndicator,
   ],
 })
 export class HealthModule {}

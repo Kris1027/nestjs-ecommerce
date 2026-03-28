@@ -1,6 +1,7 @@
 import { type ConfigService } from '@nestjs/config';
 import { type JwtService } from '@nestjs/jwt';
 import { type EventEmitter2 } from '@nestjs/event-emitter';
+import { type CacheService } from '../../src/modules/cache/cache.service';
 
 /**
  * Mock ConfigService that returns predefined values
@@ -188,6 +189,19 @@ export function createMockNotificationsService(): {
   notify: jest.Mock;
 } {
   return { notify: jest.fn().mockResolvedValue(undefined) };
+}
+
+/**
+ * Mock CacheService for caching tests
+ */
+export function createMockCacheService(): jest.Mocked<CacheService> {
+  return {
+    get: jest.fn().mockResolvedValue(undefined),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    invalidateByPrefix: jest.fn().mockResolvedValue(undefined),
+    onModuleDestroy: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<CacheService>;
 }
 
 /**
