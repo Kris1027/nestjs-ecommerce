@@ -1,25 +1,38 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ProductsService } from './products.service';
 import { createMockPrismaClient, resetMockPrismaClient } from '@test/mocks/prisma.mock';
-import { createMockCloudinaryService } from '@test/mocks/common.mock';
+import {
+  createMockCloudinaryService,
+  createMockEventEmitter,
+  createMockCacheService,
+} from '@test/mocks/common.mock';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CacheService } from '../cache/cache.service';
+import { CacheEvents } from '../cache/cache.events';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('ProductsService', () => {
   let service: ProductsService;
   let prisma: ReturnType<typeof createMockPrismaClient>;
   let cloudinaryService: ReturnType<typeof createMockCloudinaryService>;
+  let cacheService: ReturnType<typeof createMockCacheService>;
+  let eventEmitter: ReturnType<typeof createMockEventEmitter>;
 
   beforeEach(async () => {
     prisma = createMockPrismaClient();
     cloudinaryService = createMockCloudinaryService();
+    cacheService = createMockCacheService();
+    eventEmitter = createMockEventEmitter();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
         { provide: PrismaService, useValue: prisma },
         { provide: CloudinaryService, useValue: cloudinaryService },
+        { provide: CacheService, useValue: cacheService },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
 
@@ -67,6 +80,32 @@ describe('ProductsService', () => {
   });
 
   describe('findAll', () => {
+    it('should return cached result on cache hit', async () => {
+      const cachedResult = {
+        data: [mockProductList],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
+      cacheService.get.mockResolvedValue(cachedResult);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+      });
+
+      expect(result).toEqual(cachedResult);
+      expect(prisma.product.findMany).not.toHaveBeenCalled();
+      expect(prisma.product.count).not.toHaveBeenCalled();
+    });
+
     it('should return paginated active products', async () => {
       prisma.product.findMany.mockResolvedValue([mockProductList]);
       prisma.product.count.mockResolvedValue(1);
@@ -192,6 +231,15 @@ describe('ProductsService', () => {
   });
 
   describe('findBySlug', () => {
+    it('should return cached product on cache hit', async () => {
+      cacheService.get.mockResolvedValue(mockProduct);
+
+      const result = await service.findBySlug('iphone-15');
+
+      expect(result).toEqual(mockProduct);
+      expect(prisma.product.findUnique).not.toHaveBeenCalled();
+    });
+
     it('should return product by slug', async () => {
       prisma.product.findUnique.mockResolvedValue(mockProduct);
 
@@ -265,6 +313,19 @@ describe('ProductsService', () => {
       });
     });
 
+    it('should emit PRODUCT_CHANGED event after creation', async () => {
+      prisma.category.findUnique.mockResolvedValue({ id: createDto.categoryId, isActive: true });
+      prisma.product.findUnique.mockResolvedValue(null);
+      prisma.product.create.mockResolvedValue(mockProduct);
+
+      await service.create(createDto);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockProduct.id, action: 'create' }),
+      );
+    });
+
     it('should throw NotFoundException if category does not exist', async () => {
       prisma.category.findUnique.mockResolvedValue(null);
 
@@ -291,6 +352,18 @@ describe('ProductsService', () => {
       const result = await service.update(mockProduct.id, { name: 'iPhone 16' });
 
       expect(result).toEqual(updated);
+    });
+
+    it('should emit PRODUCT_CHANGED event after update', async () => {
+      prisma.product.findUnique.mockResolvedValue({ id: mockProduct.id });
+      prisma.product.update.mockResolvedValue(mockProduct);
+
+      await service.update(mockProduct.id, { name: 'iPhone 16' });
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockProduct.id, action: 'update' }),
+      );
     });
 
     it('should throw NotFoundException if product not found', async () => {
@@ -355,6 +428,18 @@ describe('ProductsService', () => {
       });
     });
 
+    it('should emit PRODUCT_CHANGED event after deactivation', async () => {
+      prisma.product.findUnique.mockResolvedValue({ id: mockProduct.id, isActive: true });
+      prisma.product.update.mockResolvedValue({} as never);
+
+      await service.deactivate(mockProduct.id);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockProduct.id, action: 'deactivate' }),
+      );
+    });
+
     it('should throw NotFoundException if product not found', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
 
@@ -389,6 +474,21 @@ describe('ProductsService', () => {
         'products/img-1',
         'products/img-2',
       ]);
+    });
+
+    it('should emit PRODUCT_CHANGED event after deletion', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: mockProduct.id,
+        images: [],
+      });
+      prisma.product.delete.mockResolvedValue({} as never);
+
+      await service.hardDelete(mockProduct.id);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockProduct.id, action: 'delete' }),
+      );
     });
 
     it('should skip cloudinary cleanup when no images have publicIds', async () => {

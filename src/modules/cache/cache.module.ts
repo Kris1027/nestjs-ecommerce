@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import KeyvRedis from '@keyv/redis';
 import type { Env } from '../../config/env.validation';
 import { CacheService } from './cache.service';
+import { CacheInvalidationListener } from './cache-invalidation.listener';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { CacheService } from './cache.service';
       inject: [ConfigService],
     }),
   ],
-  providers: [CacheService],
+  providers: [CacheService, CacheInvalidationListener],
   exports: [CacheService],
 })
 export class AppCacheModule {}

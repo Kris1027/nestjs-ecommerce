@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateProductDto, UpdateProductDto, ProductQuery } from './dto';
 import {
@@ -9,6 +10,9 @@ import {
 import { generateSlug, ensureUniqueSlug } from '../../common/utils/slug.util';
 import { Prisma } from '../../generated/prisma/client';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CacheService } from '../cache/cache.service';
+import { CACHE_PREFIXES, CACHE_TTL } from '../cache/cache.constants';
+import { CacheEvents, ProductChangedEvent } from '../cache/cache.events';
 
 // Fields to return for product listings (without full description)
 const productListSelect = {
@@ -64,6 +68,8 @@ export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly cacheService: CacheService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ============================================
@@ -72,6 +78,16 @@ export class ProductsService {
 
   private slugExists = (slug: string): Promise<{ id: string } | null> =>
     this.prisma.product.findUnique({ where: { slug }, select: { id: true } });
+
+  private buildProductListCacheKey(query: ProductQuery): string {
+    const params = Object.entries(query)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${String(v)}`)
+      .join('&');
+
+    return `${CACHE_PREFIXES.PRODUCTS_LIST}:${params}`;
+  }
 
   private async validateCategory(categoryId: string): Promise<void> {
     const category = await this.prisma.category.findUnique({
@@ -93,6 +109,12 @@ export class ProductsService {
   // ============================================
 
   async findAll(query: ProductQuery): Promise<PaginatedResult<ProductListItem>> {
+    const cacheKey = this.buildProductListCacheKey(query);
+    const cached = await this.cacheService.get<PaginatedResult<ProductListItem>>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const { skip, take } = getPrismaPageArgs(query);
 
     // Build where clause with filters
@@ -153,10 +175,19 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
-    return paginate(products as ProductListItem[], total, query);
+    const result = paginate(products as ProductListItem[], total, query);
+    await this.cacheService.set(cacheKey, result, CACHE_TTL.PRODUCTS_LIST);
+
+    return result;
   }
 
   async findBySlug(slug: string): Promise<ProductDetail> {
+    const cacheKey = `${CACHE_PREFIXES.PRODUCTS_DETAIL}:${slug}`;
+    const cached = await this.cacheService.get<ProductDetail>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { slug },
       select: productDetailSelect,
@@ -169,6 +200,8 @@ export class ProductsService {
     if (!product.isActive) {
       throw new NotFoundException('Product not found');
     }
+
+    await this.cacheService.set(cacheKey, product, CACHE_TTL.PRODUCTS_DETAIL);
 
     return product as ProductDetail;
   }
@@ -211,6 +244,11 @@ export class ProductsService {
       select: productDetailSelect,
     });
 
+    this.eventEmitter.emit(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(product.id, 'create'),
+    );
+
     return product as ProductDetail;
   }
 
@@ -244,6 +282,8 @@ export class ProductsService {
       select: productDetailSelect,
     });
 
+    this.eventEmitter.emit(CacheEvents.PRODUCT_CHANGED, new ProductChangedEvent(id, 'update'));
+
     return updated as ProductDetail;
   }
 
@@ -265,6 +305,8 @@ export class ProductsService {
       where: { id },
       data: { isActive: false },
     });
+
+    this.eventEmitter.emit(CacheEvents.PRODUCT_CHANGED, new ProductChangedEvent(id, 'deactivate'));
 
     return { message: 'Product deactivated successfully' };
   }
@@ -290,6 +332,8 @@ export class ProductsService {
     await this.prisma.product.delete({
       where: { id },
     });
+
+    this.eventEmitter.emit(CacheEvents.PRODUCT_CHANGED, new ProductChangedEvent(id, 'delete'));
 
     // Batch delete from Cloudinary after DB cascade (best-effort)
     if (publicIds.length > 0) {
@@ -327,6 +371,11 @@ export class ProductsService {
       },
     });
 
+    this.eventEmitter.emit(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'image_change'),
+    );
+
     return this.findById(productId);
   }
 
@@ -362,6 +411,11 @@ export class ProductsService {
           sortOrder: product._count.images, // Add at end
         },
       });
+
+      this.eventEmitter.emit(
+        CacheEvents.PRODUCT_CHANGED,
+        new ProductChangedEvent(productId, 'image_change'),
+      );
 
       return await this.findById(productId);
     } catch (error) {
@@ -405,6 +459,11 @@ export class ProductsService {
         this.logger.error(`Failed to delete Cloudinary image ${image.cloudinaryPublicId}`, error);
       });
     }
+
+    this.eventEmitter.emit(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'image_change'),
+    );
 
     return this.findById(productId);
   }
