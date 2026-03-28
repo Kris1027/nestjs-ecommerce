@@ -31,6 +31,7 @@ import { TaxModule } from './modules/tax/tax.module';
 import { GuestCartModule } from './modules/guest-cart/guest-cart.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { HealthModule } from './modules/health/health.module';
+import { AppCacheModule } from './modules/cache/cache.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { HealthModule } from './modules/health/health.module';
     PrismaModule,
     EventEmitterModule.forRoot(),
     QueueModule,
+    AppCacheModule,
     AuthModule,
     UsersModule,
     CategoriesModule,

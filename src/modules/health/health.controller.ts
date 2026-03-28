@@ -10,6 +10,7 @@ import { Public } from '../../common/decorators';
 // Custom indicators to check service connectivity
 import { PrismaHealthIndicator } from './indicators/prisma.health';
 import { RedisHealthIndicator } from './indicators/redis.health';
+import { CacheHealthIndicator } from './indicators/cache.health';
 
 @ApiTags('Health') // Groups endpoints under "Health" in Swagger UI
 @Controller('health')
@@ -18,6 +19,7 @@ export class HealthController {
     private readonly health: HealthCheckService,
     private readonly prismaHealth: PrismaHealthIndicator,
     private readonly redisHealth: RedisHealthIndicator,
+    private readonly cacheHealth: CacheHealthIndicator,
   ) {}
 
   @Get()
@@ -48,6 +50,7 @@ export class HealthController {
     return this.health.check([
       () => this.prismaHealth.isHealthy('database'),
       () => this.redisHealth.isHealthy('redis'),
+      () => this.cacheHealth.isHealthy('cache'),
     ]);
   }
 }
