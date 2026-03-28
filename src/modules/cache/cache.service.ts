@@ -13,7 +13,7 @@ export class CacheService implements OnModuleDestroy {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     configService: ConfigService<Env, true>,
   ) {
-    const redisUrl = configService.get('REDIS_URL');
+    const redisUrl = configService.getOrThrow<string>('REDIS_URL');
     this.redis = new Redis(redisUrl, {
       lazyConnect: true,
       connectTimeout: 5000,
