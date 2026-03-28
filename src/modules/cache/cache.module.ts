@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import KeyvRedis from '@keyv/redis';
@@ -6,6 +6,7 @@ import type { Env } from '../../config/env.validation';
 import { CacheService } from './cache.service';
 import { CacheInvalidationListener } from './cache-invalidation.listener';
 
+@Global()
 @Module({
   imports: [
     NestCacheModule.registerAsync({

@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { HealthIndicatorResult, HealthIndicatorService } from '@nestjs/terminus';
-import { CacheService } from '../../cache/cache.service';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
-const HEALTH_CHECK_KEY = 'health:cache:ping';
+const HEALTH_CHECK_KEY_PREFIX = 'health:cache:ping';
 const HEALTH_CHECK_VALUE = 'pong';
 const HEALTH_CHECK_TTL = 10_000;
 
@@ -12,16 +12,17 @@ export class CacheHealthIndicator {
 
   constructor(
     private readonly healthIndicatorService: HealthIndicatorService,
-    private readonly cacheService: CacheService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
     const indicator = this.healthIndicatorService.check(key);
+    const uniqueKey = `${HEALTH_CHECK_KEY_PREFIX}:${Date.now()}`;
 
     try {
-      await this.cacheService.set(HEALTH_CHECK_KEY, HEALTH_CHECK_VALUE, HEALTH_CHECK_TTL);
-      const value = await this.cacheService.get<string>(HEALTH_CHECK_KEY);
-      await this.cacheService.del(HEALTH_CHECK_KEY);
+      await this.cache.set(uniqueKey, HEALTH_CHECK_VALUE, HEALTH_CHECK_TTL);
+      const value = await this.cache.get<string>(uniqueKey);
+      await this.cache.del(uniqueKey);
 
       if (value !== HEALTH_CHECK_VALUE) {
         return indicator.down({ message: 'Cache read/write verification failed' });
