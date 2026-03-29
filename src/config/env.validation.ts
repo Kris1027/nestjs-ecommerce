@@ -20,6 +20,9 @@ const envSchema = z.object({
   STORE_URL: z.url(),
   ADMIN_URL: z.url(),
   REDIS_URL: z.url(),
+  DB_POOL_MAX: z.coerce.number().default(20),
+  DB_POOL_IDLE_TIMEOUT_MS: z.coerce.number().default(300_000),
+  DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5_000),
 });
 
 export type Env = z.infer<typeof envSchema>;
