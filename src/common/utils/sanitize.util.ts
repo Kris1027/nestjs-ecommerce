@@ -1,16 +1,26 @@
 import sanitize from 'sanitize-html';
 
 /**
- * Strips all HTML tags from user-generated text content.
+ * Strips all HTML tags from user-generated text and returns plain text.
  *
- * Sanitizing at write-time prevents stored XSS regardless of how frontend
- * clients render the data. We use sanitize-html instead of regex because
- * regex misses edge cases like nested tags (<scr<script>ipt>) and encoded
- * entities that decode into dangerous markup.
+ * sanitize-html strips tags but also HTML-encodes special characters
+ * (& → &amp;, < → &lt;). We decode those entities afterward so the stored
+ * value is raw plain text, not HTML-escaped text. This avoids double-encoding
+ * if a frontend later escapes the value again for display.
  *
- * All user content in this app (review titles, comments, product names,
- * descriptions) is plain text — no HTML formatting is needed.
+ * We use sanitize-html instead of regex because regex misses edge cases
+ * like nested tags (<scr<script>ipt>) and encoded entities that decode
+ * into dangerous markup.
  */
 export function stripHtmlTags(input: string): string {
-  return sanitize(input, { allowedTags: [], allowedAttributes: {} });
+  const stripped = sanitize(input, { allowedTags: [], allowedAttributes: {} });
+
+  return stripped
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
 }

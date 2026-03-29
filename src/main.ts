@@ -32,12 +32,17 @@ async function bootstrap(): Promise<void> {
 
   app.use(
     helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'none'"],
-          frameAncestors: ["'none'"],
-        },
-      },
+      // Strict CSP for production (JSON API — block all resource loading).
+      // Disabled in dev/test because Swagger UI needs inline scripts and styles.
+      contentSecurityPolicy:
+        env.NODE_ENV === 'production'
+          ? {
+              directives: {
+                defaultSrc: ["'none'"],
+                frameAncestors: ["'none'"],
+              },
+            }
+          : false,
       strictTransportSecurity:
         env.NODE_ENV === 'production'
           ? { maxAge: 63072000, includeSubDomains: true, preload: true }
