@@ -16,6 +16,9 @@ async function bootstrap(): Promise<void> {
   app.use(helmet());
 
   app.enableCors({
+    // In production, CORS_ORIGIN is required (enforced by env validation).
+    // Accepts a comma-separated list of allowed origins (e.g., "https://store.com,https://admin.com").
+    // In development, falls back to true (allow all) for convenience.
     origin: env.CORS_ORIGIN ?? true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
