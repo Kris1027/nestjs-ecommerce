@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { stripHtmlTags } from '../../../common/utils/sanitize.util';
 
 // Schema defines the shape and validation rules for creating a review
 const createReviewSchema = z.object({
@@ -11,17 +12,20 @@ const createReviewSchema = z.object({
     .max(5, 'Rating must be at most 5'),
 
   // Optional short headline like "Great product!" or "Disappointing quality"
+  // .max() runs before transform, .pipe() re-validates min after stripping HTML
   title: z
     .string()
-    .min(3, 'Title must be at least 3 characters')
     .max(100, 'Title must be 100 characters or less')
+    .transform(stripHtmlTags)
+    .pipe(z.string().min(3, 'Title must be at least 3 characters'))
     .optional(),
 
   // Required review body — minimum length ensures meaningful content
   comment: z
     .string()
-    .min(10, 'Comment must be at least 10 characters')
-    .max(2000, 'Comment must be 2000 characters or less'),
+    .max(2000, 'Comment must be 2000 characters or less')
+    .transform(stripHtmlTags)
+    .pipe(z.string().min(10, 'Comment must be at least 10 characters')),
 });
 
 // createZodDto bridges Zod schema → NestJS DTO class (used by validation pipe)

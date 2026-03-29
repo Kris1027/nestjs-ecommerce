@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { stripHtmlTags } from '../../../common/utils/sanitize.util';
 
 const updateReviewSchema = z
   .object({
@@ -11,17 +12,19 @@ const updateReviewSchema = z
       .max(5, 'Rating must be at most 5')
       .optional(),
 
+    // nullish = optional OR null (allows removing the title)
     title: z
       .string()
-      .min(3, 'Title must be at least 3 characters')
       .max(100, 'Title must be 100 characters or less')
-      // nullish = optional OR null (allows removing the title)
+      .transform(stripHtmlTags)
+      .pipe(z.string().min(3, 'Title must be at least 3 characters'))
       .nullish(),
 
     comment: z
       .string()
-      .min(10, 'Comment must be at least 10 characters')
       .max(2000, 'Comment must be 2000 characters or less')
+      .transform(stripHtmlTags)
+      .pipe(z.string().min(10, 'Comment must be at least 10 characters'))
       .optional(),
   })
   // Ensure at least one field is provided — empty updates waste a DB call

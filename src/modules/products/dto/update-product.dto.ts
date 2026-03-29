@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { stripHtmlTags } from '../../../common/utils/sanitize.util';
 
 const updateProductSchema = z.object({
   name: z
     .string()
-    .min(2, 'Name must be at least 2 characters')
     .max(200, 'Name too long')
+    .transform(stripHtmlTags)
+    .pipe(z.string().min(2, 'Name must be at least 2 characters'))
     .optional(),
   slug: z
     .string()
@@ -13,7 +15,7 @@ const updateProductSchema = z.object({
     .max(200, 'Slug too long')
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase with hyphens only')
     .optional(),
-  description: z.string().max(5000, 'Description too long').nullish(),
+  description: z.string().max(5000, 'Description too long').transform(stripHtmlTags).nullish(),
 
   // Pricing
   price: z
