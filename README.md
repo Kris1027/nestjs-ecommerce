@@ -20,7 +20,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
-| **Testing**        | Jest 30 (43 suites, 639+ tests)             |
+| **Testing**        | Jest 30 (44 suites, 656+ tests)             |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (lint, test, build)          |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
@@ -330,7 +330,7 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **43 test suites** with **639+ unit tests**
+- **44 test suites** with **656+ unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
@@ -344,7 +344,7 @@ GitHub Actions runs **3 parallel jobs** on every PR and push to main:
 | Job       | Timeout | Description                          |
 | --------- | ------- | ------------------------------------ |
 | **Lint**  | 5 min   | ESLint checks                        |
-| **Test**  | 10 min  | All 639+ unit tests via Jest         |
+| **Test**  | 10 min  | All 656+ unit tests via Jest         |
 | **Build** | 5 min   | TypeScript compilation (type safety) |
 
 - pnpm dependency caching for fast runs
@@ -365,7 +365,7 @@ src/
 │   ├── guards/             # JwtAuthGuard, RolesGuard
 │   ├── interceptors/       # TransformInterceptor
 │   ├── swagger/            # Reusable Swagger response helpers
-│   └── utils/              # Pagination, slug, order number, decimal utils
+│   └── utils/              # Pagination, slug, order number, decimal, sanitize utils
 ├── config/
 │   └── env.validation.ts   # Zod environment schema
 ├── modules/
@@ -396,15 +396,19 @@ src/
 
 ## Security
 
-- JWT authentication with short-lived access tokens and hashed refresh tokens
+Audited against the **OWASP Top 10** (see `src/main.ts` for full coverage map).
+
+- JWT authentication with short-lived access tokens (15 min) and hashed refresh tokens
 - Token family rotation to detect reuse attacks
 - bcrypt password hashing (cost factor 12)
-- 3-tier rate limiting (short, medium, long windows)
-- Helmet HTTP security headers
-- CORS with configurable origins
+- **Tiered rate limiting** per endpoint group — strict on auth (10/min), relaxed on public reads (200/min), moderate on guest cart, tight on file uploads
+- Helmet with **strict Content-Security-Policy** (`default-src 'none'`) and **HSTS preload** in production
+- **CORS whitelist required in production** — app fails fast if `CORS_ORIGIN` is not set (comma-separated origins)
 - Zod validation on all inputs (whitelist + strip unknown fields)
-- Prisma parameterized queries (SQL injection prevention)
-- Stripe webhook signature verification
+- **HTML sanitization** on all user-generated text (product names, descriptions, review titles/comments, category names) via `sanitize-html` — prevents stored XSS at write-time
+- Prisma parameterized queries (SQL injection prevention, including `$queryRaw`)
+- Stripe webhook signature verification with event deduplication
+- Email enumeration prevention (generic responses on auth endpoints)
 - No stack traces or internal details leaked in error responses
 - Environment validation at startup (fails fast on misconfiguration)
 
