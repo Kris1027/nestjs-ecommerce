@@ -172,6 +172,9 @@ export class ProductsService {
     const maxPrice = query.maxPrice ?? null;
 
     const rows = await this.prisma.$queryRaw<RawProductRow[]>`
+      WITH search_query AS (
+        SELECT websearch_to_tsquery('english', ${searchTerm}) AS q
+      )
       SELECT
         p.id,
         p.name,
@@ -190,9 +193,10 @@ export class ProductsService {
         pi.alt AS image_alt,
         pi.cloudinary_public_id AS image_cloudinary_public_id,
         pi.sort_order AS image_sort_order,
-        ts_rank(p.search_vector, websearch_to_tsquery('english', ${searchTerm})) AS rank,
+        ts_rank(p.search_vector, sq.q) AS rank,
         COUNT(*) OVER() AS total_count
       FROM products p
+      CROSS JOIN search_query sq
       JOIN categories c ON c.id = p.category_id
       LEFT JOIN LATERAL (
         SELECT pi2.id, pi2.url, pi2.alt, pi2.cloudinary_public_id, pi2.sort_order
@@ -201,13 +205,13 @@ export class ProductsService {
         ORDER BY pi2.sort_order ASC
         LIMIT 1
       ) pi ON true
-      WHERE p.search_vector @@ websearch_to_tsquery('english', ${searchTerm})
+      WHERE p.search_vector @@ sq.q
         AND (${isActive}::boolean IS NULL OR p.is_active = ${isActive})
         AND (${categoryId}::text IS NULL OR p.category_id = ${categoryId})
         AND (${isFeatured}::boolean IS NULL OR p.is_featured = ${isFeatured})
         AND (${minPrice}::decimal IS NULL OR p.price >= ${minPrice})
         AND (${maxPrice}::decimal IS NULL OR p.price <= ${maxPrice})
-      ORDER BY rank DESC
+      ORDER BY rank DESC, p.created_at DESC, p.id DESC
       LIMIT ${take}
       OFFSET ${skip}
     `;
@@ -223,21 +227,24 @@ export class ProductsService {
   // ============================================
 
   async findAll(query: ProductQuery): Promise<PaginatedResult<ProductListItem>> {
-    const cacheKey = this.buildProductListCacheKey(query);
+    const search = query.search?.trim() || undefined;
+    const normalizedQuery = { ...query, search };
+
+    const cacheKey = this.buildProductListCacheKey(normalizedQuery);
     const cached = await this.cacheService.get<PaginatedResult<ProductListItem>>(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const useFullTextSearch = query.search && query.search.trim().length >= 3;
+    const useFullTextSearch = search && search.length >= 3;
 
     let result: PaginatedResult<ProductListItem>;
 
     if (useFullTextSearch) {
-      const { products, total } = await this.findAllWithSearch(query.search!, query);
-      result = paginate(products, total, query);
+      const { products, total } = await this.findAllWithSearch(search, normalizedQuery);
+      result = paginate(products, total, normalizedQuery);
     } else {
-      const { skip, take } = getPrismaPageArgs(query);
+      const { skip, take } = getPrismaPageArgs(normalizedQuery);
 
       // Build where clause with filters
       const where: {
@@ -251,39 +258,39 @@ export class ProductsService {
         }[];
       } = {};
 
-      if (query.isActive !== undefined) {
-        where.isActive = query.isActive;
+      if (normalizedQuery.isActive !== undefined) {
+        where.isActive = normalizedQuery.isActive;
       }
 
-      if (query.categoryId) {
-        where.categoryId = query.categoryId;
+      if (normalizedQuery.categoryId) {
+        where.categoryId = normalizedQuery.categoryId;
       }
 
-      if (query.isFeatured !== undefined) {
-        where.isFeatured = query.isFeatured;
+      if (normalizedQuery.isFeatured !== undefined) {
+        where.isFeatured = normalizedQuery.isFeatured;
       }
 
-      if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+      if (normalizedQuery.minPrice !== undefined || normalizedQuery.maxPrice !== undefined) {
         where.price = {};
-        if (query.minPrice !== undefined) {
-          where.price.gte = query.minPrice;
+        if (normalizedQuery.minPrice !== undefined) {
+          where.price.gte = normalizedQuery.minPrice;
         }
-        if (query.maxPrice !== undefined) {
-          where.price.lte = query.maxPrice;
+        if (normalizedQuery.maxPrice !== undefined) {
+          where.price.lte = normalizedQuery.maxPrice;
         }
       }
 
-      if (query.search) {
+      if (search) {
         where.OR = [
-          { name: { contains: query.search, mode: 'insensitive' } },
-          { description: { contains: query.search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
         ];
       }
 
       // Build orderBy
       const orderBy: Record<string, 'asc' | 'desc'> = {};
-      const sortField = query.sortBy || 'createdAt';
-      const sortOrder = query.sortOrder || 'desc';
+      const sortField = normalizedQuery.sortBy || 'createdAt';
+      const sortOrder = normalizedQuery.sortOrder || 'desc';
       orderBy[sortField] = sortOrder;
 
       const [products, total] = await Promise.all([
@@ -297,7 +304,7 @@ export class ProductsService {
         this.prisma.product.count({ where }),
       ]);
 
-      result = paginate(products as ProductListItem[], total, query);
+      result = paginate(products as ProductListItem[], total, normalizedQuery);
     }
 
     await this.cacheService.set(cacheKey, result, CACHE_TTL.PRODUCTS_LIST);
