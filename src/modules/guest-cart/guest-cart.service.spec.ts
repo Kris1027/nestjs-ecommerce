@@ -350,17 +350,19 @@ describe('GuestCartService', () => {
       prisma.guestCart.findUnique.mockResolvedValue(mockGuestCart);
       prisma.cart.findUnique.mockResolvedValue({ id: 'user-cart-id' });
       prisma.cartItem.findMany.mockResolvedValue([]); // No existing items
-      prisma.cartItem.create.mockResolvedValue({});
+      prisma.cartItem.createMany.mockResolvedValue({ count: 1 });
       prisma.guestCart.delete.mockResolvedValue({});
 
       await service.mergeIntoUserCart(rawToken, userId);
 
-      expect(prisma.cartItem.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          cartId: 'user-cart-id',
-          productId,
-          quantity: 2,
-        }),
+      expect(prisma.cartItem.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            cartId: 'user-cart-id',
+            productId,
+            quantity: 2,
+          }),
+        ],
       });
       expect(prisma.guestCart.delete).toHaveBeenCalledWith({ where: { id: cartId } });
     });
@@ -370,7 +372,7 @@ describe('GuestCartService', () => {
       prisma.cart.findUnique.mockResolvedValue(null);
       prisma.cart.create.mockResolvedValue({ id: 'new-user-cart' });
       prisma.cartItem.findMany.mockResolvedValue([]);
-      prisma.cartItem.create.mockResolvedValue({});
+      prisma.cartItem.createMany.mockResolvedValue({ count: 1 });
       prisma.guestCart.delete.mockResolvedValue({});
 
       await service.mergeIntoUserCart(rawToken, userId);
@@ -445,7 +447,7 @@ describe('GuestCartService', () => {
 
       await service.mergeIntoUserCart(rawToken, userId);
 
-      expect(prisma.cartItem.create).not.toHaveBeenCalled();
+      expect(prisma.cartItem.createMany).not.toHaveBeenCalled();
     });
   });
 });

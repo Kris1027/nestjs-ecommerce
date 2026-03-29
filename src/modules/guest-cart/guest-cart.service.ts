@@ -348,30 +348,35 @@ export class GuestCartService {
       existingItems.map((item) => [item.productId, { id: item.id, quantity: item.quantity }]),
     );
 
-    // Merge items (add quantities for existing products)
+    // Separate items into updates (existing in user cart) and creates (new items)
+    const updates: Promise<unknown>[] = [];
+    const toCreate: { cartId: string; productId: string; quantity: number }[] = [];
+
     for (const guestItem of activeGuestItems) {
       const existingItem = existingItemsByProductId.get(guestItem.product.id);
       const availableStock = guestItem.product.stock - guestItem.product.reservedStock;
 
       if (existingItem) {
         const newQuantity = Math.min(existingItem.quantity + guestItem.quantity, availableStock);
-        await this.prisma.cartItem.update({
-          where: { id: existingItem.id },
-          data: { quantity: newQuantity },
-        });
+        updates.push(
+          this.prisma.cartItem.update({
+            where: { id: existingItem.id },
+            data: { quantity: newQuantity },
+          }),
+        );
       } else {
         const quantity = Math.min(guestItem.quantity, availableStock);
         if (quantity > 0) {
-          await this.prisma.cartItem.create({
-            data: {
-              cartId: userCart.id,
-              productId: guestItem.product.id,
-              quantity,
-            },
-          });
+          toCreate.push({ cartId: userCart.id, productId: guestItem.product.id, quantity });
         }
       }
     }
+
+    // Execute all writes in parallel: updates target different rows, createMany batches inserts
+    await Promise.all([
+      ...updates,
+      toCreate.length > 0 ? this.prisma.cartItem.createMany({ data: toCreate }) : Promise.resolve(),
+    ]);
 
     // Delete guest cart after merge
     await this.prisma.guestCart.delete({ where: { id: guestCart.id } });
