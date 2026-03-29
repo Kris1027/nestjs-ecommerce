@@ -47,7 +47,11 @@ describe('stripHtmlTags', () => {
     expect(stripHtmlTags('<div><span></span></div>')).toBe('');
   });
 
-  it('should preserve ampersands and angle brackets in plain text context', () => {
-    expect(stripHtmlTags('A & B < C > D')).toBe('A &amp; B &lt; C &gt; D');
+  it('should preserve ampersands and angle brackets as raw plain text', () => {
+    expect(stripHtmlTags('A & B < C > D')).toBe('A & B < C > D');
+  });
+
+  it('should decode HTML entities back to plain text', () => {
+    expect(stripHtmlTags('Tom &amp; Jerry')).toBe('Tom & Jerry');
   });
 });

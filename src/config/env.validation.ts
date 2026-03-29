@@ -8,7 +8,13 @@ const envSchema = z
     DATABASE_URL: z.string().min(1),
     CORS_ORIGIN: z
       .string()
-      .transform((val) => val.split(',').map((s) => s.trim()))
+      .transform((val) =>
+        val
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0),
+      )
+      .pipe(z.array(z.url('Each CORS origin must be a valid URL')).min(1))
       .optional(),
     JWT_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
