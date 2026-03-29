@@ -561,6 +561,7 @@ model Payment {
         @@index([orderId])
         @@index([stripePaymentIntentId])
         @@index([status, createdAt]) // Compound index for abandoned payment cleanup (status + time range)
+        @@index([createdAt]) // Admin payment listing sorted by date
         @@map("payments")
 }
 
