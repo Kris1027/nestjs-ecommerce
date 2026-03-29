@@ -41,6 +41,11 @@ export class CategoriesController {
 
   @Get()
   @Public()
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 40, ttl: 10000 },
+    long: { limit: 200, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'List all active categories (public)' })
   @ApiPaginatedResponse(CategoryResponseDto, 'Paginated category list')
   findAll(@Query() query: CategoryQueryDto): ReturnType<CategoriesService['findAll']> {
@@ -49,6 +54,11 @@ export class CategoriesController {
 
   @Get('tree')
   @Public()
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 40, ttl: 10000 },
+    long: { limit: 200, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'Get category tree hierarchy (public)' })
   @ApiSuccessResponse(CategoryResponseDto)
   @ApiErrorResponses(429)
@@ -74,6 +84,11 @@ export class CategoriesController {
 
   @Get(':slug')
   @Public()
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 40, ttl: 10000 },
+    long: { limit: 200, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'Get a category by slug (public)' })
   @ApiParam({ name: 'slug', description: 'URL-friendly category slug', example: 'electronics' })
   @ApiSuccessResponse(CategoryResponseDto)

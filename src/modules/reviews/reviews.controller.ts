@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ReviewsService } from './reviews.service';
 import { Public, Roles, CurrentUser } from '../../common/decorators';
 import {
@@ -23,6 +24,11 @@ export class ReviewsController {
 
   @Get('product/:productId')
   @Public()
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 40, ttl: 10000 },
+    long: { limit: 200, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'List approved reviews for a product' })
   @ApiParam({ name: 'productId', description: 'Product CUID' })
   @ApiQuery({

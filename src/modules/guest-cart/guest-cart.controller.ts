@@ -13,6 +13,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { Public } from '../../common/decorators';
 import { ApiErrorResponses, ApiSuccessResponse } from '../../common/swagger';
@@ -46,6 +47,11 @@ export class GuestCartController {
   }
 
   @Post('items')
+  @Throttle({
+    short: { limit: 2, ttl: 1000 },
+    medium: { limit: 10, ttl: 10000 },
+    long: { limit: 30, ttl: 60000 },
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Add item to guest cart (creates cart if no token)' })
   @ApiHeader({ name: TOKEN_HEADER, description: 'Guest cart session token', required: false })
