@@ -49,6 +49,11 @@ export class ProductsController {
 
   @Get()
   @Public()
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 40, ttl: 10000 },
+    long: { limit: 200, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'List products with filters and pagination (public)' })
   @ApiQuery({
     name: 'page',
@@ -115,6 +120,11 @@ export class ProductsController {
 
   @Get(':slug')
   @Public()
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 40, ttl: 10000 },
+    long: { limit: 200, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'Get full product details by slug (public)' })
   @ApiParam({
     name: 'slug',
