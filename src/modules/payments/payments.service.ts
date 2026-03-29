@@ -588,6 +588,7 @@ export class PaymentsService {
         id: true,
         stripePaymentIntentId: true,
         orderId: true,
+        order: { select: { status: true } },
       },
     });
 
@@ -611,12 +612,7 @@ export class PaymentsService {
         });
 
         // Cancel the order (releases reserved stock via OrdersService)
-        const order = await this.prisma.order.findUnique({
-          where: { id: payment.orderId },
-          select: { status: true },
-        });
-
-        if (order && order.status === 'PENDING') {
+        if (payment.order.status === 'PENDING') {
           await this.ordersService.updateOrderStatus(payment.orderId, {
             status: 'CANCELLED',
             adminNotes: 'Auto-cancelled: payment expired after 24 hours',
