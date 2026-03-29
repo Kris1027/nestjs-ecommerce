@@ -560,8 +560,7 @@ model Payment {
 
         @@index([orderId])
         @@index([stripePaymentIntentId])
-        @@index([status])
-        @@index([createdAt]) // For abandoned payment cleanup queries
+        @@index([status, createdAt]) // Compound index for abandoned payment cleanup (status + time range)
         @@map("payments")
 }
 
