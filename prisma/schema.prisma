@@ -148,6 +148,9 @@ model Product {
         category   Category       @relation(fields: [categoryId], references: [id])
         images     ProductImage[]
 
+        // Full-text search (DB-managed via trigger on name + description)
+        searchVector Unsupported("tsvector")? @map("search_vector")
+
         // Status
         isActive      Boolean  @default(true) @map("is_active")
         isFeatured    Boolean  @default(false) @map("is_featured")

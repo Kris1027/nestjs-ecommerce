@@ -191,7 +191,7 @@ describe('ProductsService', () => {
       );
     });
 
-    it('should search by name or description', async () => {
+    it('should fall back to ILIKE search for short queries (1-2 chars)', async () => {
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);
 
@@ -200,19 +200,143 @@ describe('ProductsService', () => {
         limit: 10,
         sortOrder: 'desc',
         isActive: true,
-        search: 'iphone',
+        search: 'ip',
       });
 
       expect(prisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             OR: [
-              { name: { contains: 'iphone', mode: 'insensitive' } },
-              { description: { contains: 'iphone', mode: 'insensitive' } },
+              { name: { contains: 'ip', mode: 'insensitive' } },
+              { description: { contains: 'ip', mode: 'insensitive' } },
             ],
           }),
         }),
       );
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    });
+
+    it('should use full-text search for queries with 3+ characters', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        search: 'wireless headphones',
+      });
+
+      expect(prisma.$queryRaw).toHaveBeenCalled();
+      expect(prisma.product.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should return paginated results from full-text search', async () => {
+      const mockRawRow = {
+        id: 'clprod123456789012345678',
+        name: 'Wireless Headphones',
+        slug: 'wireless-headphones',
+        price: '79.99',
+        compare_price: null,
+        stock: 25,
+        is_active: true,
+        is_featured: false,
+        created_at: new Date(),
+        category_id: 'clcat1234567890123456789',
+        category_name: 'Electronics',
+        category_slug: 'electronics',
+        image_id: 'climg1234567890123456789',
+        image_url: 'https://example.com/headphones.jpg',
+        image_alt: 'Headphones',
+        image_cloudinary_public_id: 'products/headphones-1',
+        image_sort_order: 0,
+        rank: 0.85,
+        total_count: BigInt(1),
+      };
+      prisma.$queryRaw.mockResolvedValue([mockRawRow]);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        search: 'wireless headphones',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].name).toBe('Wireless Headphones');
+      expect(result.data[0].category.name).toBe('Electronics');
+      expect(result.data[0].images).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+    });
+
+    it('should return empty results from full-text search with no matches', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        search: 'nonexistent product xyz',
+      });
+
+      expect(result.data).toHaveLength(0);
+      expect(result.meta.total).toBe(0);
+    });
+
+    it('should cache full-text search results', async () => {
+      prisma.$queryRaw.mockResolvedValue([]);
+
+      await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        search: 'laptop',
+      });
+
+      expect(cacheService.set).toHaveBeenCalledWith(
+        expect.stringContaining('cache:products:list:'),
+        expect.objectContaining({ data: [], meta: expect.any(Object) }),
+        expect.any(Number),
+      );
+    });
+
+    it('should handle full-text search with products that have no images', async () => {
+      const mockRawRow = {
+        id: 'clprod123456789012345678',
+        name: 'Basic Laptop',
+        slug: 'basic-laptop',
+        price: '499.99',
+        compare_price: '599.99',
+        stock: 10,
+        is_active: true,
+        is_featured: true,
+        created_at: new Date(),
+        category_id: 'clcat1234567890123456789',
+        category_name: 'Electronics',
+        category_slug: 'electronics',
+        image_id: null,
+        image_url: null,
+        image_alt: null,
+        image_cloudinary_public_id: null,
+        image_sort_order: null,
+        rank: 0.6,
+        total_count: BigInt(1),
+      };
+      prisma.$queryRaw.mockResolvedValue([mockRawRow]);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc',
+        isActive: true,
+        search: 'basic laptop',
+      });
+
+      expect(result.data[0].images).toHaveLength(0);
+      expect(result.data[0].isFeatured).toBe(true);
     });
 
     it('should sort by specified field and order', async () => {
