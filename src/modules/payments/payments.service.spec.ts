@@ -619,10 +619,10 @@ describe('PaymentsService', () => {
           id: paymentId,
           stripePaymentIntentId: stripeIntentId,
           orderId,
+          order: { status: 'PENDING' },
         },
       ]);
       prisma.payment.update.mockResolvedValue({});
-      prisma.order.findUnique.mockResolvedValue({ status: 'PENDING' });
       ordersService.updateOrderStatus.mockResolvedValue({});
 
       const result = await service.expireAbandonedPayments();
@@ -657,10 +657,10 @@ describe('PaymentsService', () => {
           id: paymentId,
           stripePaymentIntentId: stripeIntentId,
           orderId,
+          order: { status: 'CONFIRMED' },
         },
       ]);
       prisma.payment.update.mockResolvedValue({});
-      prisma.order.findUnique.mockResolvedValue({ status: 'CONFIRMED' });
 
       await service.expireAbandonedPayments();
 
@@ -669,15 +669,24 @@ describe('PaymentsService', () => {
 
     it('should continue processing when individual payment fails', async () => {
       prisma.payment.findMany.mockResolvedValue([
-        { id: 'pay1', stripePaymentIntentId: 'pi_1', orderId: 'order1' },
-        { id: 'pay2', stripePaymentIntentId: 'pi_2', orderId: 'order2' },
+        {
+          id: 'pay1',
+          stripePaymentIntentId: 'pi_1',
+          orderId: 'order1',
+          order: { status: 'PENDING' },
+        },
+        {
+          id: 'pay2',
+          stripePaymentIntentId: 'pi_2',
+          orderId: 'order2',
+          order: { status: 'PENDING' },
+        },
       ]);
 
       stripe.paymentIntents.cancel
         .mockRejectedValueOnce(new Error('Stripe error'))
         .mockResolvedValueOnce({});
       prisma.payment.update.mockResolvedValue({});
-      prisma.order.findUnique.mockResolvedValue({ status: 'PENDING' });
       ordersService.updateOrderStatus.mockResolvedValue({});
 
       const result = await service.expireAbandonedPayments();
