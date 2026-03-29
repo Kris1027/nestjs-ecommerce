@@ -13,7 +13,20 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(app.get(Logger));
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+      strictTransportSecurity:
+        env.NODE_ENV === 'production'
+          ? { maxAge: 63072000, includeSubDomains: true, preload: true }
+          : false,
+    }),
+  );
 
   app.enableCors({
     // In production, CORS_ORIGIN is required (enforced by env validation).
