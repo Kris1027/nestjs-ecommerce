@@ -10,6 +10,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { AuthService, type TokenResponse } from './auth.service';
 import {
@@ -32,6 +33,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    medium: { limit: 5, ttl: 10000 },
+    long: { limit: 10, ttl: 60000 },
+  })
   @ApiOperation({ summary: 'Register a new user account' })
   @ApiSuccessResponse(TokenResponseDto, 201, 'User registered successfully')
   @ApiErrorResponses(400, 409, 429)
@@ -43,6 +49,11 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    medium: { limit: 5, ttl: 10000 },
+    long: { limit: 10, ttl: 60000 },
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Authenticate with email and password' })
   @ApiHeader({
@@ -94,6 +105,11 @@ export class AuthController {
   }
 
   @Post('resend-verification')
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    medium: { limit: 5, ttl: 10000 },
+    long: { limit: 10, ttl: 60000 },
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Resend email verification link' })
   @ApiSuccessResponse(MessageResponseDto, 200, 'Verification email sent if account exists')
@@ -103,6 +119,11 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    medium: { limit: 5, ttl: 10000 },
+    long: { limit: 10, ttl: 60000 },
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset email' })
   @ApiSuccessResponse(MessageResponseDto, 200, 'Password reset email sent if account exists')
@@ -112,6 +133,11 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Throttle({
+    short: { limit: 1, ttl: 1000 },
+    medium: { limit: 3, ttl: 10000 },
+    long: { limit: 5, ttl: 60000 },
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with token from email' })
   @ApiSuccessResponse(MessageResponseDto, 200, 'Password reset successfully')
