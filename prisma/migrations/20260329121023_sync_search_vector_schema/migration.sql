@@ -1,0 +1,3 @@
+-- This migration is intentionally empty.
+-- The GIN index on products.search_vector was created in the previous migration
+-- and is managed outside of Prisma schema (Unsupported type cannot have indexes in Prisma).

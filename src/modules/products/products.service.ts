@@ -62,6 +62,29 @@ const productDetailSelect = {
 type ProductListItem = Prisma.ProductGetPayload<{ select: typeof productListSelect }>;
 type ProductDetail = Prisma.ProductGetPayload<{ select: typeof productDetailSelect }>;
 
+// Raw SQL result shape for full-text search queries
+type RawProductRow = {
+  id: string;
+  name: string;
+  slug: string;
+  price: string;
+  compare_price: string | null;
+  stock: number;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at: Date;
+  category_id: string;
+  category_name: string;
+  category_slug: string;
+  image_id: string | null;
+  image_url: string | null;
+  image_alt: string | null;
+  image_cloudinary_public_id: string | null;
+  image_sort_order: number | null;
+  rank: number;
+  total_count: bigint;
+};
+
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
@@ -104,6 +127,97 @@ export class ProductsService {
     }
   }
 
+  private mapRawProductToListItem(row: RawProductRow): ProductListItem {
+    const images: ProductListItem['images'] = row.image_id
+      ? [
+          {
+            id: row.image_id,
+            url: row.image_url!,
+            alt: row.image_alt,
+            cloudinaryPublicId: row.image_cloudinary_public_id,
+            sortOrder: row.image_sort_order!,
+          },
+        ]
+      : [];
+
+    return {
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      price: new Prisma.Decimal(row.price),
+      comparePrice: row.compare_price ? new Prisma.Decimal(row.compare_price) : null,
+      stock: row.stock,
+      isActive: row.is_active,
+      isFeatured: row.is_featured,
+      createdAt: row.created_at,
+      category: {
+        id: row.category_id,
+        name: row.category_name,
+        slug: row.category_slug,
+      },
+      images,
+    };
+  }
+
+  private async findAllWithSearch(
+    searchTerm: string,
+    query: ProductQuery,
+  ): Promise<{ products: ProductListItem[]; total: number }> {
+    const { skip, take } = getPrismaPageArgs(query);
+
+    const isActive = query.isActive ?? null;
+    const categoryId = query.categoryId ?? null;
+    const isFeatured = query.isFeatured ?? null;
+    const minPrice = query.minPrice ?? null;
+    const maxPrice = query.maxPrice ?? null;
+
+    const rows = await this.prisma.$queryRaw<RawProductRow[]>`
+      SELECT
+        p.id,
+        p.name,
+        p.slug,
+        p.price::text,
+        p.compare_price::text,
+        p.stock,
+        p.is_active,
+        p.is_featured,
+        p.created_at,
+        c.id AS category_id,
+        c.name AS category_name,
+        c.slug AS category_slug,
+        pi.id AS image_id,
+        pi.url AS image_url,
+        pi.alt AS image_alt,
+        pi.cloudinary_public_id AS image_cloudinary_public_id,
+        pi.sort_order AS image_sort_order,
+        ts_rank(p.search_vector, websearch_to_tsquery('english', ${searchTerm})) AS rank,
+        COUNT(*) OVER() AS total_count
+      FROM products p
+      JOIN categories c ON c.id = p.category_id
+      LEFT JOIN LATERAL (
+        SELECT pi2.id, pi2.url, pi2.alt, pi2.cloudinary_public_id, pi2.sort_order
+        FROM product_images pi2
+        WHERE pi2.product_id = p.id
+        ORDER BY pi2.sort_order ASC
+        LIMIT 1
+      ) pi ON true
+      WHERE p.search_vector @@ websearch_to_tsquery('english', ${searchTerm})
+        AND (${isActive}::boolean IS NULL OR p.is_active = ${isActive})
+        AND (${categoryId}::text IS NULL OR p.category_id = ${categoryId})
+        AND (${isFeatured}::boolean IS NULL OR p.is_featured = ${isFeatured})
+        AND (${minPrice}::decimal IS NULL OR p.price >= ${minPrice})
+        AND (${maxPrice}::decimal IS NULL OR p.price <= ${maxPrice})
+      ORDER BY rank DESC
+      LIMIT ${take}
+      OFFSET ${skip}
+    `;
+
+    const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    const products = rows.map((row) => this.mapRawProductToListItem(row));
+
+    return { products, total };
+  }
+
   // ============================================
   // PUBLIC METHODS
   // ============================================
@@ -115,67 +229,77 @@ export class ProductsService {
       return cached;
     }
 
-    const { skip, take } = getPrismaPageArgs(query);
+    const useFullTextSearch = query.search && query.search.trim().length >= 3;
 
-    // Build where clause with filters
-    const where: {
-      isActive?: boolean;
-      categoryId?: string;
-      isFeatured?: boolean;
-      price?: { gte?: number; lte?: number };
-      OR?: {
-        name?: { contains: string; mode: 'insensitive' };
-        description?: { contains: string; mode: 'insensitive' };
-      }[];
-    } = {};
+    let result: PaginatedResult<ProductListItem>;
 
-    if (query.isActive !== undefined) {
-      where.isActive = query.isActive;
-    }
+    if (useFullTextSearch) {
+      const { products, total } = await this.findAllWithSearch(query.search!, query);
+      result = paginate(products, total, query);
+    } else {
+      const { skip, take } = getPrismaPageArgs(query);
 
-    if (query.categoryId) {
-      where.categoryId = query.categoryId;
-    }
+      // Build where clause with filters
+      const where: {
+        isActive?: boolean;
+        categoryId?: string;
+        isFeatured?: boolean;
+        price?: { gte?: number; lte?: number };
+        OR?: {
+          name?: { contains: string; mode: 'insensitive' };
+          description?: { contains: string; mode: 'insensitive' };
+        }[];
+      } = {};
 
-    if (query.isFeatured !== undefined) {
-      where.isFeatured = query.isFeatured;
-    }
-
-    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
-      where.price = {};
-      if (query.minPrice !== undefined) {
-        where.price.gte = query.minPrice;
+      if (query.isActive !== undefined) {
+        where.isActive = query.isActive;
       }
-      if (query.maxPrice !== undefined) {
-        where.price.lte = query.maxPrice;
+
+      if (query.categoryId) {
+        where.categoryId = query.categoryId;
       }
+
+      if (query.isFeatured !== undefined) {
+        where.isFeatured = query.isFeatured;
+      }
+
+      if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+        where.price = {};
+        if (query.minPrice !== undefined) {
+          where.price.gte = query.minPrice;
+        }
+        if (query.maxPrice !== undefined) {
+          where.price.lte = query.maxPrice;
+        }
+      }
+
+      if (query.search) {
+        where.OR = [
+          { name: { contains: query.search, mode: 'insensitive' } },
+          { description: { contains: query.search, mode: 'insensitive' } },
+        ];
+      }
+
+      // Build orderBy
+      const orderBy: Record<string, 'asc' | 'desc'> = {};
+      const sortField = query.sortBy || 'createdAt';
+      const sortOrder = query.sortOrder || 'desc';
+      orderBy[sortField] = sortOrder;
+
+      const [products, total] = await Promise.all([
+        this.prisma.product.findMany({
+          where,
+          select: productListSelect,
+          orderBy,
+          skip,
+          take,
+        }),
+        this.prisma.product.count({ where }),
+      ]);
+
+      result = paginate(products as ProductListItem[], total, query);
     }
 
-    if (query.search) {
-      where.OR = [
-        { name: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
-      ];
-    }
-
-    // Build orderBy
-    const orderBy: Record<string, 'asc' | 'desc'> = {};
-    const sortField = query.sortBy || 'createdAt';
-    const sortOrder = query.sortOrder || 'desc';
-    orderBy[sortField] = sortOrder;
-
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        select: productListSelect,
-        orderBy,
-        skip,
-        take,
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    const result = paginate(products as ProductListItem[], total, query);
     await this.cacheService.set(cacheKey, result, CACHE_TTL.PRODUCTS_LIST);
 
     return result;

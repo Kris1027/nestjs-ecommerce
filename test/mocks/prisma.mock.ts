@@ -64,6 +64,7 @@ export type MockPrismaClient = {
   [K in PrismaModel]: MockedModel;
 } & {
   $transaction: jest.Mock;
+  $queryRaw: jest.Mock;
   $connect: jest.Mock;
   $disconnect: jest.Mock;
 };
@@ -100,6 +101,9 @@ export function createMockPrismaClient(): MockPrismaClient {
     return Promise.resolve(arg);
   });
 
+  // Add $queryRaw mock for raw SQL queries (e.g. full-text search)
+  mockPrisma['$queryRaw'] = jest.fn().mockResolvedValue([]);
+
   // Add $connect and $disconnect mocks
   mockPrisma['$connect'] = jest.fn().mockResolvedValue(undefined);
   mockPrisma['$disconnect'] = jest.fn().mockResolvedValue(undefined);
@@ -118,6 +122,9 @@ export function resetMockPrismaClient(prisma: MockPrismaClient): void {
       modelMock[method].mockReset();
     }
   }
+
+  prisma.$queryRaw.mockReset();
+  prisma.$queryRaw.mockResolvedValue([]);
 
   prisma.$connect.mockReset();
   prisma.$connect.mockResolvedValue(undefined);
