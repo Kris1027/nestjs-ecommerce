@@ -46,6 +46,16 @@ type StockOperationResult = {
   movement: StockMovement;
 };
 
+type LowStockRow = {
+  id: string;
+  name: string;
+  sku: string | null;
+  stock: number;
+  reserved_stock: number;
+  low_stock_threshold: number;
+  available_stock: number;
+};
+
 @Injectable()
 export class InventoryService {
   constructor(
@@ -187,26 +197,40 @@ export class InventoryService {
   async getLowStockProducts(query: PaginationQuery): Promise<PaginatedResult<StockInfo>> {
     const { skip, take } = getPrismaPageArgs(query);
 
-    // Fetch all active products (low-stock filter requires computed field)
-    const products = await this.prisma.product.findMany({
-      where: { isActive: true },
-      select: stockInfoSelect,
-    });
+    // Use raw SQL because the low-stock condition is a computed expression
+    // (stock - reserved_stock <= low_stock_threshold) that Prisma can't filter on
+    const [products, countResult] = await Promise.all([
+      this.prisma.$queryRaw<LowStockRow[]>`
+        SELECT id, name, sku, stock, reserved_stock, low_stock_threshold,
+               (stock - reserved_stock) AS available_stock
+        FROM products
+        WHERE is_active = true
+          AND (stock - reserved_stock) <= low_stock_threshold
+        ORDER BY (stock - reserved_stock) ASC, id ASC
+        LIMIT ${take} OFFSET ${skip}
+      `,
+      this.prisma.$queryRaw<[{ count: bigint }]>`
+        SELECT COUNT(*) AS count
+        FROM products
+        WHERE is_active = true
+          AND (stock - reserved_stock) <= low_stock_threshold
+      `,
+    ]);
 
-    // Filter for low stock (stock - reservedStock <= threshold is computed, can't filter in Prisma)
-    const lowStockProducts = products
-      .filter((p) => p.stock - p.reservedStock <= p.lowStockThreshold)
-      .map((p) => ({
-        ...p,
-        availableStock: p.stock - p.reservedStock,
-        isLowStock: true as const,
-      }));
+    const total = Number(countResult[0].count);
 
-    // Paginate the filtered results
-    const total = lowStockProducts.length;
-    const paged = lowStockProducts.slice(skip, skip + take);
+    const mapped: StockInfo[] = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku,
+      stock: p.stock,
+      reservedStock: p.reserved_stock,
+      lowStockThreshold: p.low_stock_threshold,
+      availableStock: p.available_stock,
+      isLowStock: true,
+    }));
 
-    return paginate(paged, total, query);
+    return paginate(mapped, total, query);
   }
 
   // ============================================

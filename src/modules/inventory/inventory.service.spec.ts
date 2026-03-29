@@ -147,13 +147,29 @@ describe('InventoryService', () => {
   });
 
   describe('getLowStockProducts', () => {
-    it('should return only products with low stock', async () => {
-      const products = [
-        { ...mockStockProduct, stock: 100, reservedStock: 10, lowStockThreshold: 5 },
-        { ...mockStockProduct, id: 'low-1', stock: 8, reservedStock: 5, lowStockThreshold: 5 },
-        { ...mockStockProduct, id: 'low-2', stock: 5, reservedStock: 5, lowStockThreshold: 5 },
-      ];
-      prisma.product.findMany.mockResolvedValue(products);
+    it('should return low stock products from raw SQL query', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            id: 'low-1',
+            name: 'Product A',
+            sku: 'SKU-1',
+            stock: 8,
+            reserved_stock: 5,
+            low_stock_threshold: 5,
+            available_stock: 3,
+          },
+          {
+            id: 'low-2',
+            name: 'Product B',
+            sku: 'SKU-2',
+            stock: 5,
+            reserved_stock: 5,
+            low_stock_threshold: 5,
+            available_stock: 0,
+          },
+        ])
+        .mockResolvedValueOnce([{ count: 2n }]);
 
       const result = await service.getLowStockProducts({ page: 1, limit: 10, sortOrder: 'desc' });
 
@@ -168,9 +184,7 @@ describe('InventoryService', () => {
     });
 
     it('should return empty results when no products are low stock', async () => {
-      prisma.product.findMany.mockResolvedValue([
-        { ...mockStockProduct, stock: 100, reservedStock: 0, lowStockThreshold: 5 },
-      ]);
+      prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ count: 0n }]);
 
       const result = await service.getLowStockProducts({ page: 1, limit: 10, sortOrder: 'desc' });
 
@@ -178,29 +192,41 @@ describe('InventoryService', () => {
       expect(result.meta.total).toBe(0);
     });
 
-    it('should only query active products', async () => {
-      prisma.product.findMany.mockResolvedValue([]);
+    it('should use raw SQL to filter in the database', async () => {
+      prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([{ count: 0n }]);
 
       await service.getLowStockProducts({ page: 1, limit: 10, sortOrder: 'desc' });
 
-      expect(prisma.product.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { isActive: true } }),
-      );
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     });
 
-    it('should paginate filtered results correctly', async () => {
-      const lowStockProducts = [
-        { ...mockStockProduct, id: 'low-1', stock: 3, reservedStock: 0, lowStockThreshold: 5 },
-        { ...mockStockProduct, id: 'low-2', stock: 4, reservedStock: 0, lowStockThreshold: 5 },
-        { ...mockStockProduct, id: 'low-3', stock: 2, reservedStock: 0, lowStockThreshold: 5 },
-      ];
-      prisma.product.findMany.mockResolvedValue(lowStockProducts);
+    it('should map snake_case columns to camelCase response', async () => {
+      prisma.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            id: 'low-1',
+            name: 'Product',
+            sku: null,
+            stock: 3,
+            reserved_stock: 0,
+            low_stock_threshold: 5,
+            available_stock: 3,
+          },
+        ])
+        .mockResolvedValueOnce([{ count: 1n }]);
 
-      const result = await service.getLowStockProducts({ page: 2, limit: 2, sortOrder: 'desc' });
+      const result = await service.getLowStockProducts({ page: 1, limit: 10, sortOrder: 'desc' });
 
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0]).toEqual(expect.objectContaining({ id: 'low-3' }));
-      expect(result.meta.total).toBe(3);
+      expect(result.data[0]).toEqual({
+        id: 'low-1',
+        name: 'Product',
+        sku: null,
+        stock: 3,
+        reservedStock: 0,
+        lowStockThreshold: 5,
+        availableStock: 3,
+        isLowStock: true,
+      });
     });
   });
 
