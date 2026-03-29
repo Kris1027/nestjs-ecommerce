@@ -142,7 +142,7 @@ describe('OrdersService', () => {
 
       // Transaction mock — execute the callback with the prisma mock
       prisma.order.create.mockResolvedValue(mockOrderDetail);
-      prisma.product.findUnique.mockResolvedValue({ stock: 100, reservedStock: 10 });
+      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 100, reservedStock: 10 }]);
       prisma.product.update.mockResolvedValue({});
       prisma.stockMovement.create.mockResolvedValue({});
       prisma.cartItem.deleteMany.mockResolvedValue({});
@@ -379,7 +379,7 @@ describe('OrdersService', () => {
     it('should cancel pending order and release reserved stock', async () => {
       prisma.order.findUnique.mockResolvedValue(mockPendingOrder);
       prisma.order.update.mockResolvedValue({ ...mockOrderDetail, status: 'CANCELLED' });
-      prisma.product.findUnique.mockResolvedValue({ stock: 100, reservedStock: 12 });
+      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 100, reservedStock: 12 }]);
       prisma.product.update.mockResolvedValue({});
       prisma.stockMovement.create.mockResolvedValue({});
 
@@ -398,7 +398,7 @@ describe('OrdersService', () => {
         status: 'CONFIRMED',
       });
       prisma.order.update.mockResolvedValue({ ...mockOrderDetail, status: 'CANCELLED' });
-      prisma.product.findUnique.mockResolvedValue({ stock: 98, reservedStock: 0 });
+      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 98, reservedStock: 0 }]);
       prisma.product.update.mockResolvedValue({});
       prisma.stockMovement.create.mockResolvedValue({});
 
@@ -442,7 +442,9 @@ describe('OrdersService', () => {
 
       await service.cancelOrder(orderId, userId);
 
-      expect(prisma.product.findUnique).not.toHaveBeenCalled();
+      // Null productIds filtered out, no batch fetch needed
+      expect(prisma.product.findMany).not.toHaveBeenCalled();
+      expect(prisma.product.update).not.toHaveBeenCalled();
     });
   });
 
@@ -672,7 +674,7 @@ describe('OrdersService', () => {
 
     it('should convert reservations to sales when confirming', async () => {
       prisma.order.findUnique.mockResolvedValue(mockOrder);
-      prisma.product.findUnique.mockResolvedValue({ stock: 100, reservedStock: 10 });
+      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 100, reservedStock: 10 }]);
       prisma.product.update.mockResolvedValue({});
       prisma.stockMovement.create.mockResolvedValue({});
       prisma.order.update.mockResolvedValue({ ...mockOrderDetail, status: 'CONFIRMED' });
@@ -691,7 +693,7 @@ describe('OrdersService', () => {
 
     it('should release stock when admin cancels pending order', async () => {
       prisma.order.findUnique.mockResolvedValue(mockOrder);
-      prisma.product.findUnique.mockResolvedValue({ stock: 100, reservedStock: 12 });
+      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 100, reservedStock: 12 }]);
       prisma.product.update.mockResolvedValue({});
       prisma.stockMovement.create.mockResolvedValue({});
       prisma.order.update.mockResolvedValue({ ...mockOrderDetail, status: 'CANCELLED' });
@@ -710,7 +712,7 @@ describe('OrdersService', () => {
         ...mockOrder,
         status: 'CONFIRMED',
       });
-      prisma.product.findUnique.mockResolvedValue({ stock: 98, reservedStock: 0 });
+      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 98, reservedStock: 0 }]);
       prisma.product.update.mockResolvedValue({});
       prisma.stockMovement.create.mockResolvedValue({});
       prisma.order.update.mockResolvedValue({ ...mockOrderDetail, status: 'CANCELLED' });
