@@ -246,13 +246,13 @@ export class OrdersService {
         select: orderDetailSelect,
       });
 
+      // Batch-fetch product stock to avoid N+1 queries inside the transaction
+      const productIds = cart.items.map((item) => item.product.id);
+      const stockMap = await this.batchFetchProductStock(tx, productIds);
+
       // Reserve stock for each item inside the same transaction
       for (const item of cart.items) {
-        // Re-validate stock inside transaction to prevent race conditions
-        const product = await tx.product.findUnique({
-          where: { id: item.product.id },
-          select: { stock: true, reservedStock: true },
-        });
+        const product = stockMap.get(item.product.id);
 
         if (!product) {
           throw new BadRequestException(`Product "${item.product.name}" is no longer available`);
@@ -408,16 +408,19 @@ export class OrdersService {
         select: orderDetailSelect,
       });
 
+      // Batch-fetch product stock to avoid N+1 queries
+      const productIds = order.items
+        .filter((item) => item.productId !== null)
+        .map((item) => item.productId as string);
+      const stockMap = await this.batchFetchProductStock(tx, productIds);
+
       // Restore stock for each item based on order status
       for (const item of order.items) {
         if (!item.productId) {
           continue;
-        } // Product was deleted
+        }
 
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { stock: true, reservedStock: true },
-        });
+        const product = stockMap.get(item.productId);
 
         if (!product) {
           continue;
@@ -673,6 +676,18 @@ export class OrdersService {
 
     // Update status + stock operations atomically in one transaction
     const updated = await this.prisma.$transaction(async (tx) => {
+      // Batch-fetch product stock for items that need stock operations
+      const needsStockOps =
+        newStatus === OrderStatus.CONFIRMED || newStatus === OrderStatus.CANCELLED;
+
+      let stockMap = new Map<string, { stock: number; reservedStock: number }>();
+      if (needsStockOps) {
+        const productIds = order.items
+          .filter((item) => item.productId !== null)
+          .map((item) => item.productId as string);
+        stockMap = await this.batchFetchProductStock(tx, productIds);
+      }
+
       // If confirming the order, convert reservations to actual sales
       if (newStatus === OrderStatus.CONFIRMED) {
         for (const item of order.items) {
@@ -680,10 +695,7 @@ export class OrdersService {
             continue;
           }
 
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { stock: true, reservedStock: true },
-          });
+          const product = stockMap.get(item.productId);
 
           if (!product || item.quantity > product.reservedStock) {
             throw new BadRequestException(
@@ -719,10 +731,7 @@ export class OrdersService {
             continue;
           }
 
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-            select: { stock: true, reservedStock: true },
-          });
+          const product = stockMap.get(item.productId);
 
           if (!product) {
             continue;
@@ -790,5 +799,25 @@ export class OrdersService {
     );
 
     return updated;
+  }
+
+  // ============================================
+  // PRIVATE HELPERS
+  // ============================================
+
+  private async batchFetchProductStock(
+    tx: Prisma.TransactionClient,
+    productIds: string[],
+  ): Promise<Map<string, { stock: number; reservedStock: number }>> {
+    if (productIds.length === 0) {
+      return new Map();
+    }
+
+    const products = await tx.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, stock: true, reservedStock: true },
+    });
+
+    return new Map(products.map((p) => [p.id, { stock: p.stock, reservedStock: p.reservedStock }]));
   }
 }
