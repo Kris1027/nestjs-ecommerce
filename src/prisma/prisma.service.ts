@@ -5,6 +5,12 @@ import { env } from '../config/env.validation';
 
 const SLOW_QUERY_THRESHOLD_MS = 100;
 
+type QueryEvent = {
+  query: string;
+  duration: number;
+  params: string;
+};
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
@@ -35,11 +41,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit(): Promise<void> {
     if (env.NODE_ENV === 'development') {
-      // @ts-expect-error Prisma event types not fully typed with adapter pattern
-      this.$on('query', (e: { query: string; duration: number; params: string }) => {
-        if (e.duration > SLOW_QUERY_THRESHOLD_MS) {
-          this.logger.warn(`SLOW QUERY (${e.duration}ms): ${e.query}`);
-          this.logger.warn(`Params: ${e.params}`);
+      this.$on('query' as never, (e: unknown) => {
+        const event = e as QueryEvent;
+        if (event.duration > SLOW_QUERY_THRESHOLD_MS) {
+          this.logger.warn(`SLOW QUERY (${event.duration}ms): ${event.query}`);
+          this.logger.warn(`Params: ${event.params}`);
         }
       });
     }
