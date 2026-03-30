@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { type INestApplication } from '@nestjs/common';
 import { type App } from 'supertest/types';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerStorage } from '@nestjs/throttler';
 import { AppModule } from '../../../src/app.module';
 import { EmailService } from '../../../src/modules/notifications/email.service';
 import { CloudinaryService } from '../../../src/modules/cloudinary/cloudinary.service';
@@ -30,9 +30,19 @@ export async function createTestApp(): Promise<INestApplication<App>> {
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
   })
-    // Disable rate limiting — tests fire requests rapidly
-    .overrideGuard(ThrottlerGuard)
-    .useValue({ canActivate: () => true })
+    // Disable rate limiting — tests fire requests rapidly.
+    // We override the storage (not the guard) because the ThrottlerGuard
+    // is registered as APP_GUARD which can't be easily replaced.
+    // A no-op storage that always returns 0 hits means the guard never blocks.
+    .overrideProvider(ThrottlerStorage)
+    .useValue({
+      increment: jest.fn().mockResolvedValue({
+        totalHits: 0,
+        timeToExpire: 0,
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      }),
+    })
 
     // Mock email — no real emails in tests
     .overrideProvider(EmailService)
