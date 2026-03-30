@@ -47,7 +47,7 @@ export async function registerAndLogin(
   // Bypass email verification (E2E tests don't send real emails)
   const prisma = app.get(PrismaService);
   await prisma.$executeRaw`
-    UPDATE users SET "emailVerified" = true WHERE email = ${data.email}
+    UPDATE users SET email_verified_at = NOW() WHERE email = ${data.email}
   `;
 
   // Login to get tokens
@@ -78,7 +78,7 @@ export async function createAdminAndLogin(
 
   const prisma = app.get(PrismaService);
   await prisma.$executeRaw`
-    UPDATE users SET "emailVerified" = true, role = 'ADMIN' WHERE email = ${data.email}
+    UPDATE users SET email_verified_at = NOW(), role = 'ADMIN' WHERE email = ${data.email}
   `;
 
   // Login to get admin tokens
