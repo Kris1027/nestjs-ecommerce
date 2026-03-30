@@ -20,7 +20,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
-| **Testing**        | Jest 30 (44 suites, 656+ tests)             |
+| **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 689 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (lint, test, build)          |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
@@ -159,10 +159,11 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 - Indirect invalidation on order creation, status changes, and stock adjustments
 - Error-resilient — Redis failures degrade gracefully to direct database queries
 
-### Health Checks
+### Health Checks & Graceful Shutdown
 
 - `GET /health` — liveness probe (app is running)
 - `GET /health/ready` — readiness probe (database + Redis + cache layer connectivity)
+- **Graceful shutdown** — `enableShutdownHooks()` ensures database connections, Redis clients, and BullMQ workers close cleanly on SIGTERM/SIGINT
 
 ---
 
@@ -319,6 +320,8 @@ All environment variables are validated at startup via Zod. The app will not sta
 
 ## Testing
 
+### Unit Tests
+
 ```bash
 # Run all unit tests
 pnpm test
@@ -330,10 +333,30 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **44 test suites** with **656+ unit tests**
+- **44 test suites** with **657 unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
+
+### E2E Tests
+
+```bash
+# Requires PostgreSQL and Redis running locally
+pnpm test:e2e
+```
+
+- **5 test suites** with **32 E2E tests** running against real PostgreSQL and Redis
+- Test database auto-created (appends `_test` to dev DB name) and dropped after each run
+- External services (Stripe, Resend, Cloudinary) mocked at the provider level; everything else is real
+- Covers health checks, full auth lifecycle, categories CRUD with RBAC, and products with filtering/search
+
+| Suite | Tests | Coverage |
+|-------|-------|----------|
+| `app.e2e-spec.ts` | 1 | Root endpoint auth enforcement |
+| `health.e2e-spec.ts` | 2 | Liveness + readiness probes |
+| `auth.e2e-spec.ts` | 11 | Register, login, refresh, logout, validation |
+| `categories.e2e-spec.ts` | 10 | Public listing, RBAC (401/403), admin CRUD |
+| `products.e2e-spec.ts` | 8 | Listing, search, category filter, admin create |
 
 ---
 
@@ -344,7 +367,7 @@ GitHub Actions runs **3 parallel jobs** on every PR and push to main:
 | Job       | Timeout | Description                          |
 | --------- | ------- | ------------------------------------ |
 | **Lint**  | 5 min   | ESLint checks                        |
-| **Test**  | 10 min  | All 656+ unit tests via Jest         |
+| **Test**  | 10 min  | 657 unit tests + 32 E2E tests via Jest |
 | **Build** | 5 min   | TypeScript compilation (type safety) |
 
 - pnpm dependency caching for fast runs
