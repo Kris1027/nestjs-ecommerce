@@ -93,7 +93,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 # "node dist/main.js" not "pnpm start:prod" — avoids pnpm overhead
 # and ensures SIGTERM goes directly to Node (important for graceful shutdown)
-CMD ["node", "--require", "./dist/instrumentation.js", "dist/main.js"]
+CMD ["node", "--require", "./dist/src/instrumentation.js", "dist/src/main.js"]
 
 # ============================================================
 # Stage 5: DEVELOPMENT — for docker-compose local dev
