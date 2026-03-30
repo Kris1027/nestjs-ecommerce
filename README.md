@@ -23,6 +23,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 689 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (lint, test, build)          |
+| **Observability**  | OpenTelemetry (traces) + Jaeger             |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
 
 ---
@@ -159,6 +160,21 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 - Indirect invalidation on order creation, status changes, and stock adjustments
 - Error-resilient — Redis failures degrade gracefully to direct database queries
 
+### API Versioning
+
+- All endpoints prefixed with `/api/v1` (e.g., `/api/v1/products`, `/api/v1/auth/login`)
+- Health endpoints excluded from prefix — accessible at `/health` and `/health/ready` for K8s probes and Docker healthchecks
+- Swagger docs at `/docs` reflect the versioned paths
+
+### Observability (OpenTelemetry)
+
+- **Distributed tracing** via OpenTelemetry SDK with auto-instrumentation (HTTP, Express, PostgreSQL, Redis, NestJS)
+- **Disabled by default** — enabled via `OTEL_ENABLED=true` environment variable
+- **OTLP export** — traces sent to any OTLP-compatible backend (Jaeger, Grafana Tempo, Datadog)
+- **Health endpoint exclusion** — `/health` requests excluded from traces to reduce noise
+- **Jaeger included** in Docker Compose for local trace viewing at `http://localhost:16686`
+- **Graceful shutdown** — SDK shuts down cleanly on SIGTERM/SIGINT
+
 ### Health Checks & Graceful Shutdown
 
 - `GET /health` — liveness probe (app is running)
@@ -172,7 +188,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 Every request flows through these globally-registered providers in order:
 
 ```
-Request → Rate Limiter → JWT Auth → Role Guard → Zod Validation → [Handler] → Response Envelope → Error Filter → Response
+Request → /api/v1/* → Rate Limiter → JWT Auth → Role Guard → Zod Validation → [Handler] → Response Envelope → Error Filter → Response
 ```
 
 | Stage                    | Description                                                     |
@@ -262,7 +278,8 @@ docker compose up --build
 The Docker Compose setup includes:
 - **PostgreSQL 17** with health checks and persistent volume
 - **Redis 7** with health checks and persistent volume
-- **NestJS app** with hot reload via bind mounts
+- **Jaeger** for distributed trace viewing at `http://localhost:16686`
+- **NestJS app** with hot reload, OTel tracing enabled via bind mounts
 
 ---
 
@@ -290,7 +307,7 @@ The Docker Compose setup includes:
 
 ## API Documentation
 
-Swagger UI is available at **`/docs`** in non-production environments (91 documented endpoints).
+Swagger UI is available at **`/docs`** in non-production environments (91 documented endpoints). All API paths are prefixed with `/api/v1`.
 
 Additional export formats:
 - JSON: `/docs-json`
@@ -313,6 +330,7 @@ See [`.env.example`](.env.example) for all required variables. Key groups:
 | **Cloudinary**  | `CLOUDINARY_CLOUD_NAME`, `API_KEY`, `API_SECRET`       |
 | **Email**       | `RESEND_API_KEY`, `EMAIL_FROM`                         |
 | **Redis**       | `REDIS_URL`                                            |
+| **OpenTelemetry** | `OTEL_ENABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` |
 
 All environment variables are validated at startup via Zod. The app will not start with missing or invalid configuration.
 
