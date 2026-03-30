@@ -3,6 +3,7 @@ import request from 'supertest';
 import { type App } from 'supertest/types';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { createTestApp, truncateAllTables } from './helpers/test-app.factory';
+import { api } from './helpers/api-path.helper';
 
 /**
  * Auth E2E Tests
@@ -44,7 +45,7 @@ describe('Auth (e2e)', () => {
   describe('POST /auth/register', () => {
     it('should register a new user and return tokens', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/register')
+        .post(api('/auth/register'))
         .send(testUser)
         .expect(201);
 
@@ -60,11 +61,11 @@ describe('Auth (e2e)', () => {
 
     it('should return 409 when email is already registered', async () => {
       // Register first time
-      await request(app.getHttpServer()).post('/auth/register').send(testUser).expect(201);
+      await request(app.getHttpServer()).post(api('/auth/register')).send(testUser).expect(201);
 
       // Register same email again
       const response = await request(app.getHttpServer())
-        .post('/auth/register')
+        .post(api('/auth/register'))
         .send(testUser)
         .expect(409);
 
@@ -77,7 +78,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 400 for invalid email', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/register')
+        .post(api('/auth/register'))
         .send({ ...testUser, email: 'not-an-email' })
         .expect(400);
 
@@ -89,7 +90,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 400 for weak password', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/register')
+        .post(api('/auth/register'))
         .send({ ...testUser, password: 'short' })
         .expect(400);
 
@@ -103,12 +104,12 @@ describe('Auth (e2e)', () => {
   describe('POST /auth/login', () => {
     beforeEach(async () => {
       // Register a user for login tests
-      await request(app.getHttpServer()).post('/auth/register').send(testUser);
+      await request(app.getHttpServer()).post(api('/auth/register')).send(testUser);
     });
 
     it('should login with valid credentials and return tokens', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post(api('/auth/login'))
         .send({ email: testUser.email, password: testUser.password })
         .expect(200);
 
@@ -123,7 +124,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 for wrong password', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post(api('/auth/login'))
         .send({ email: testUser.email, password: 'WrongPassword123' })
         .expect(401);
 
@@ -136,7 +137,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 for non-existent email', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post(api('/auth/login'))
         .send({ email: 'noone@example.com', password: 'Password123' })
         .expect(401);
 
@@ -154,7 +155,7 @@ describe('Auth (e2e)', () => {
       `;
 
       const response = await request(app.getHttpServer())
-        .post('/auth/login')
+        .post(api('/auth/login'))
         .send({ email: testUser.email, password: testUser.password })
         .expect(401);
 
@@ -171,14 +172,16 @@ describe('Auth (e2e)', () => {
 
     beforeEach(async () => {
       // Register and login to get a refresh token
-      const registerRes = await request(app.getHttpServer()).post('/auth/register').send(testUser);
+      const registerRes = await request(app.getHttpServer())
+        .post(api('/auth/register'))
+        .send(testUser);
 
       refreshToken = registerRes.body.data.refreshToken;
     });
 
     it('should return new token pair with valid refresh token', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post(api('/auth/refresh'))
         .send({ refreshToken })
         .expect(200);
 
@@ -193,7 +196,7 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 for invalid refresh token', async () => {
       const response = await request(app.getHttpServer())
-        .post('/auth/refresh')
+        .post(api('/auth/refresh'))
         .send({ refreshToken: 'invalid-token' })
         .expect(401);
 
@@ -208,7 +211,9 @@ describe('Auth (e2e)', () => {
     let refreshToken: string;
 
     beforeEach(async () => {
-      const registerRes = await request(app.getHttpServer()).post('/auth/register').send(testUser);
+      const registerRes = await request(app.getHttpServer())
+        .post(api('/auth/register'))
+        .send(testUser);
 
       refreshToken = registerRes.body.data.refreshToken;
     });
@@ -216,7 +221,7 @@ describe('Auth (e2e)', () => {
     it('should invalidate the refresh token', async () => {
       // Logout
       const response = await request(app.getHttpServer())
-        .post('/auth/logout')
+        .post(api('/auth/logout'))
         .send({ refreshToken })
         .expect(200);
 
@@ -228,7 +233,10 @@ describe('Auth (e2e)', () => {
       });
 
       // Refresh should now fail
-      await request(app.getHttpServer()).post('/auth/refresh').send({ refreshToken }).expect(401);
+      await request(app.getHttpServer())
+        .post(api('/auth/refresh'))
+        .send({ refreshToken })
+        .expect(401);
     });
   });
 });

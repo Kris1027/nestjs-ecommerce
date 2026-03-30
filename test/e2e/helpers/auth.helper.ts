@@ -2,6 +2,7 @@ import { type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { type App } from 'supertest/types';
 import { PrismaService } from '../../../src/prisma/prisma.service';
+import { api } from './api-path.helper';
 
 /**
  * Registers a new user via the real /auth/register endpoint.
@@ -15,7 +16,7 @@ export async function registerUser(
   app: INestApplication<App>,
   data: { email: string; password: string; firstName?: string; lastName?: string },
 ): Promise<request.Response> {
-  return request(app.getHttpServer()).post('/auth/register').send(data);
+  return request(app.getHttpServer()).post(api('/auth/register')).send(data);
 }
 
 /**
@@ -26,7 +27,7 @@ export async function loginUser(
   app: INestApplication<App>,
   data: { email: string; password: string },
 ): Promise<request.Response> {
-  return request(app.getHttpServer()).post('/auth/login').send(data);
+  return request(app.getHttpServer()).post(api('/auth/login')).send(data);
 }
 
 /**

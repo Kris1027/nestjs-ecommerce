@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { type INestApplication } from '@nestjs/common';
+import { RequestMethod, type INestApplication } from '@nestjs/common';
 import { type App } from 'supertest/types';
 import { ThrottlerStorage } from '@nestjs/throttler';
 import { AppModule } from '../../../src/app.module';
@@ -7,6 +7,7 @@ import { EmailService } from '../../../src/modules/notifications/email.service';
 import { CloudinaryService } from '../../../src/modules/cloudinary/cloudinary.service';
 import { STRIPE } from '../../../src/modules/payments/payments.provider';
 import { type PrismaService } from '../../../src/prisma/prisma.service';
+import { API_PREFIX } from '../../../src/common/constants';
 
 /**
  * Creates a real NestJS application for E2E testing.
@@ -102,6 +103,13 @@ export async function createTestApp(): Promise<INestApplication<App>> {
   // Enable shutdown hooks so onModuleDestroy fires during app.close()
   // This prevents connection leaks between test suites
   app.enableShutdownHooks();
+
+  app.setGlobalPrefix(API_PREFIX, {
+    exclude: [
+      { path: 'health', method: RequestMethod.ALL },
+      { path: 'health/(.*)', method: RequestMethod.ALL },
+    ],
+  });
 
   await app.init();
   return app;

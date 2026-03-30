@@ -2,6 +2,7 @@ import { type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { type App } from 'supertest/types';
 import { createTestApp } from './helpers/test-app.factory';
+import { api } from './helpers/api-path.helper';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -17,6 +18,6 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET) should return 401 without authentication', () => {
-    return request(app.getHttpServer()).get('/').expect(401);
+    return request(app.getHttpServer()).get(api('/')).expect(401);
   });
 });
