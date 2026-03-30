@@ -1,4 +1,7 @@
+import 'dotenv/config';
 import pg from 'pg';
+
+const TEST_DB_SUFFIX = '_test';
 
 /**
  * Jest global teardown — runs ONCE after all E2E test suites complete.
@@ -10,13 +13,15 @@ import pg from 'pg';
  * if a migration is broken, the next run fails at setup, not silently.
  */
 export default async function globalTeardown(): Promise<void> {
-  const testDbName = 'nestjs_ecommerce_test';
+  const databaseUrl = new URL(process.env.DATABASE_URL!);
+  const devDbName = databaseUrl.pathname.replace('/', '');
+  const testDbName = devDbName.endsWith(TEST_DB_SUFFIX) ? devDbName : devDbName + TEST_DB_SUFFIX;
 
   const client = new pg.Client({
-    host: 'localhost',
-    port: 5433,
-    user: process.env.POSTGRES_USER ?? 'postgres',
-    password: process.env.POSTGRES_PASSWORD ?? 'postgres',
+    host: databaseUrl.hostname,
+    port: Number(databaseUrl.port) || 5432,
+    user: decodeURIComponent(databaseUrl.username),
+    password: databaseUrl.password ? decodeURIComponent(databaseUrl.password) : undefined,
     database: 'postgres',
   });
 
@@ -29,7 +34,7 @@ export default async function globalTeardown(): Promise<void> {
       [testDbName],
     );
 
-    await client.query(`DROP DATABASE IF EXISTS ${testDbName}`);
+    await client.query(`DROP DATABASE IF EXISTS "${testDbName}"`);
     console.warn(`\n  Dropped test database: ${testDbName}`);
   } finally {
     await client.end();
