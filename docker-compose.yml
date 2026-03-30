@@ -62,7 +62,7 @@ services:
   # Jaeger — distributed tracing UI (local dev)
   # ──────────────────────────────────────────────
   jaeger:
-    image: jaegertracing/all-in-one:1.68
+    image: jaegertracing/all-in-one:1.76.0
     restart: unless-stopped
     ports:
       - '16686:16686'   # Jaeger UI
@@ -101,11 +101,9 @@ services:
       # Override .env to use Docker internal networking (service names as hosts)
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-nestjs_ecommerce}?schema=public
       REDIS_URL: redis://redis:6379
-      OTEL_ENABLED: 'true'
+      OTEL_ENABLED: 'false'
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: nestjs-ecommerce-api
-      # Preload OTel instrumentation before NestJS boots (inherited by nest start child process)
-      NODE_OPTIONS: '--require ./src/instrumentation.ts'
     volumes:
       # Bind mount source code for hot reload
       - ./src:/app/src
