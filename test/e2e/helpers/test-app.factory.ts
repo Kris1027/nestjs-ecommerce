@@ -107,7 +107,7 @@ export async function createTestApp(): Promise<INestApplication<App>> {
   app.setGlobalPrefix(API_PREFIX, {
     exclude: [
       { path: 'health', method: RequestMethod.ALL },
-      { path: 'health/(.*)', method: RequestMethod.ALL },
+      { path: 'health/*path', method: RequestMethod.ALL },
     ],
   });
 

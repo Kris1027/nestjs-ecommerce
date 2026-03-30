@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { version } from '../package.json';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
