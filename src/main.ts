@@ -89,6 +89,8 @@ async function bootstrap(): Promise<void> {
     });
   }
 
+  app.enableShutdownHooks();
+
   await app.listen(env.PORT);
 }
 bootstrap().catch((err: Error) => {
