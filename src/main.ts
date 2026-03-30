@@ -1,4 +1,5 @@
 import { version } from '../package.json';
+import { RequestMethod } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
@@ -7,6 +8,7 @@ import { env } from './config/env.validation';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import compression from 'compression';
+import { API_PREFIX } from './common/constants';
 
 /**
  * OWASP Top 10 Security Coverage
@@ -61,6 +63,13 @@ async function bootstrap(): Promise<void> {
   });
 
   app.use(compression());
+
+  app.setGlobalPrefix(API_PREFIX, {
+    exclude: [
+      { path: 'health', method: RequestMethod.ALL },
+      { path: 'health/(.*)', method: RequestMethod.ALL },
+    ],
+  });
 
   // Swagger setup — only available in development/test
   if (env.NODE_ENV !== 'production') {

@@ -4,6 +4,7 @@ import { type App } from 'supertest/types';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { createTestApp, truncateAllTables } from './helpers/test-app.factory';
 import { createAdminAndLogin, registerAndLogin } from './helpers/auth.helper';
+import { api } from './helpers/api-path.helper';
 
 /**
  * Categories E2E Tests
@@ -32,7 +33,7 @@ describe('Categories (e2e)', () => {
 
   describe('Public endpoints', () => {
     it('GET /categories should return paginated list', async () => {
-      const response = await request(app.getHttpServer()).get('/categories').expect(200);
+      const response = await request(app.getHttpServer()).get(api('/categories')).expect(200);
 
       expect(response.body).toMatchObject({
         success: true,
@@ -46,7 +47,7 @@ describe('Categories (e2e)', () => {
     });
 
     it('GET /categories/tree should return category hierarchy', async () => {
-      const response = await request(app.getHttpServer()).get('/categories/tree').expect(200);
+      const response = await request(app.getHttpServer()).get(api('/categories/tree')).expect(200);
 
       expect(response.body).toMatchObject({
         success: true,
@@ -56,7 +57,7 @@ describe('Categories (e2e)', () => {
 
     it('GET /categories/:slug should return 404 for non-existent slug', async () => {
       const response = await request(app.getHttpServer())
-        .get('/categories/non-existent-slug')
+        .get(api('/categories/non-existent-slug'))
         .expect(404);
 
       expect(response.body).toMatchObject({
@@ -74,7 +75,7 @@ describe('Categories (e2e)', () => {
       });
 
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ name: 'Electronics' })
         .expect(201);
@@ -82,7 +83,9 @@ describe('Categories (e2e)', () => {
       const slug = createRes.body.data.slug;
 
       // Fetch by slug (public, no auth)
-      const response = await request(app.getHttpServer()).get(`/categories/${slug}`).expect(200);
+      const response = await request(app.getHttpServer())
+        .get(api(`/categories/${slug}`))
+        .expect(200);
 
       expect(response.body).toMatchObject({
         success: true,
@@ -97,7 +100,7 @@ describe('Categories (e2e)', () => {
   describe('RBAC enforcement', () => {
     it('POST /categories should return 401 without auth', async () => {
       await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .send({ name: 'Test Category' })
         .expect(401);
     });
@@ -110,7 +113,7 @@ describe('Categories (e2e)', () => {
       });
 
       await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ name: 'Test Category' })
         .expect(403);
@@ -131,7 +134,7 @@ describe('Categories (e2e)', () => {
 
     it('POST /categories should create a category', async () => {
       const response = await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'Electronics', description: 'Gadgets and devices' })
         .expect(201);
@@ -150,7 +153,7 @@ describe('Categories (e2e)', () => {
     it('PATCH /categories/:id should update a category', async () => {
       // Create first
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'Electronics' })
         .expect(201);
@@ -159,7 +162,7 @@ describe('Categories (e2e)', () => {
 
       // Update
       const response = await request(app.getHttpServer())
-        .patch(`/categories/${categoryId}`)
+        .patch(api(`/categories/${categoryId}`))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'Updated Electronics' })
         .expect(200);
@@ -175,7 +178,7 @@ describe('Categories (e2e)', () => {
 
     it('POST /categories/:id/deactivate should soft-delete', async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'To Deactivate' })
         .expect(201);
@@ -183,7 +186,7 @@ describe('Categories (e2e)', () => {
       const categoryId = createRes.body.data.id;
 
       const response = await request(app.getHttpServer())
-        .post(`/categories/${categoryId}/deactivate`)
+        .post(api(`/categories/${categoryId}/deactivate`))
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
@@ -195,7 +198,7 @@ describe('Categories (e2e)', () => {
       });
 
       // Should not appear in public listing (which filters isActive: true)
-      const listRes = await request(app.getHttpServer()).get('/categories').expect(200);
+      const listRes = await request(app.getHttpServer()).get(api('/categories')).expect(200);
 
       const slugs = listRes.body.data.map((c: { slug: string }) => c.slug);
       expect(slugs).not.toContain('to-deactivate');
@@ -203,7 +206,7 @@ describe('Categories (e2e)', () => {
 
     it('DELETE /categories/:id should permanently delete', async () => {
       const createRes = await request(app.getHttpServer())
-        .post('/categories')
+        .post(api('/categories'))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'To Delete' })
         .expect(201);
@@ -211,12 +214,12 @@ describe('Categories (e2e)', () => {
       const categoryId = createRes.body.data.id;
 
       await request(app.getHttpServer())
-        .delete(`/categories/${categoryId}`)
+        .delete(api(`/categories/${categoryId}`))
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       // Should be gone entirely
-      await request(app.getHttpServer()).get('/categories/to-delete').expect(404);
+      await request(app.getHttpServer()).get(api('/categories/to-delete')).expect(404);
     });
   });
 });

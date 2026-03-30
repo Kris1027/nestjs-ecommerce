@@ -4,6 +4,7 @@ import { type App } from 'supertest/types';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { createTestApp, truncateAllTables } from './helpers/test-app.factory';
 import { createAdminAndLogin } from './helpers/auth.helper';
+import { api } from './helpers/api-path.helper';
 
 /**
  * Products E2E Tests
@@ -41,7 +42,7 @@ describe('Products (e2e)', () => {
     adminToken = admin.accessToken;
 
     const catRes = await request(app.getHttpServer())
-      .post('/categories')
+      .post(api('/categories'))
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Electronics' })
       .expect(201);
@@ -63,14 +64,14 @@ describe('Products (e2e)', () => {
     };
 
     return request(app.getHttpServer())
-      .post('/products')
+      .post(api('/products'))
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ ...defaults, ...overrides });
   }
 
   describe('Public endpoints', () => {
     it('GET /products should return paginated list', async () => {
-      const response = await request(app.getHttpServer()).get('/products').expect(200);
+      const response = await request(app.getHttpServer()).get(api('/products')).expect(200);
 
       expect(response.body).toMatchObject({
         success: true,
@@ -88,7 +89,7 @@ describe('Products (e2e)', () => {
       await createProduct().expect(201);
 
       const response = await request(app.getHttpServer())
-        .get(`/products?categoryId=${categoryId}`)
+        .get(api(`/products?categoryId=${categoryId}`))
         .expect(200);
 
       expect(response.body.data.length).toBeGreaterThanOrEqual(1);
@@ -99,7 +100,7 @@ describe('Products (e2e)', () => {
       await createProduct({ name: 'USB Cable' }).expect(201);
 
       const response = await request(app.getHttpServer())
-        .get('/products?search=bluetooth')
+        .get(api('/products?search=bluetooth'))
         .expect(200);
 
       expect(response.body.data.length).toBe(1);
@@ -110,7 +111,9 @@ describe('Products (e2e)', () => {
       const createRes = await createProduct().expect(201);
       const slug = createRes.body.data.slug;
 
-      const response = await request(app.getHttpServer()).get(`/products/${slug}`).expect(200);
+      const response = await request(app.getHttpServer())
+        .get(api(`/products/${slug}`))
+        .expect(200);
 
       expect(response.body).toMatchObject({
         success: true,
@@ -126,7 +129,7 @@ describe('Products (e2e)', () => {
     });
 
     it('GET /products/:slug should return 404 for non-existent slug', async () => {
-      await request(app.getHttpServer()).get('/products/does-not-exist').expect(404);
+      await request(app.getHttpServer()).get(api('/products/does-not-exist')).expect(404);
     });
   });
 
@@ -147,7 +150,7 @@ describe('Products (e2e)', () => {
 
     it('POST /products should return 400 for missing required fields', async () => {
       const response = await request(app.getHttpServer())
-        .post('/products')
+        .post(api('/products'))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ name: 'No Price Product' })
         .expect(400);
@@ -160,7 +163,7 @@ describe('Products (e2e)', () => {
 
     it('POST /products should return 404 for non-existent categoryId', async () => {
       const response = await request(app.getHttpServer())
-        .post('/products')
+        .post(api('/products'))
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Bad Category Product',
