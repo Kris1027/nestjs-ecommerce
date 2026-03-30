@@ -68,7 +68,7 @@ describe('Categories (e2e)', () => {
     it('GET /categories/:slug should return category by slug', async () => {
       // Seed a category via admin
       const { accessToken } = await createAdminAndLogin(app, {
-        name: 'Admin',
+        firstName: 'Admin',
         email: 'admin@example.com',
         password: 'Password123',
       });
@@ -104,7 +104,7 @@ describe('Categories (e2e)', () => {
 
     it('POST /categories should return 403 for CUSTOMER role', async () => {
       const { accessToken } = await registerAndLogin(app, {
-        name: 'Customer',
+        firstName: 'Customer',
         email: 'customer@example.com',
         password: 'Password123',
       });
@@ -122,7 +122,7 @@ describe('Categories (e2e)', () => {
 
     beforeEach(async () => {
       const { accessToken } = await createAdminAndLogin(app, {
-        name: 'Admin',
+        firstName: 'Admin',
         email: 'admin@example.com',
         password: 'Password123',
       });
