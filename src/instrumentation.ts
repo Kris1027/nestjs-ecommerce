@@ -1,3 +1,5 @@
+import 'dotenv/config';
+import { version } from '../package.json';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
@@ -11,7 +13,7 @@ if (isEnabled) {
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'nestjs-ecommerce-api',
-      [ATTR_SERVICE_VERSION]: process.env.npm_package_version || '0.0.0',
+      [ATTR_SERVICE_VERSION]: version,
     }),
     traceExporter: new OTLPTraceExporter({
       url: `${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318'}/v1/traces`,

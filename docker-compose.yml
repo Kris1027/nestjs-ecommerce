@@ -62,7 +62,7 @@ services:
   # Jaeger — distributed tracing UI (local dev)
   # ──────────────────────────────────────────────
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.68
     restart: unless-stopped
     ports:
       - '16686:16686'   # Jaeger UI
@@ -104,6 +104,8 @@ services:
       OTEL_ENABLED: 'true'
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: nestjs-ecommerce-api
+      # Preload OTel instrumentation before NestJS boots (inherited by nest start child process)
+      NODE_OPTIONS: '--require ./src/instrumentation.ts'
     volumes:
       # Bind mount source code for hot reload
       - ./src:/app/src
