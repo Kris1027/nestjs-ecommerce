@@ -59,6 +59,20 @@ services:
       - app-network
 
   # ──────────────────────────────────────────────
+  # Jaeger — distributed tracing UI (local dev)
+  # ──────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    ports:
+      - '16686:16686'   # Jaeger UI
+      - '4318:4318'     # OTLP HTTP receiver
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    networks:
+      - app-network
+
+  # ──────────────────────────────────────────────
   # NestJS Application — development mode
   # ──────────────────────────────────────────────
   app:
@@ -78,6 +92,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     env_file:
       # Loads your .env file — same one you use for local development
       - .env
@@ -85,6 +101,9 @@ services:
       # Override .env to use Docker internal networking (service names as hosts)
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-nestjs_ecommerce}?schema=public
       REDIS_URL: redis://redis:6379
+      OTEL_ENABLED: 'true'
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: nestjs-ecommerce-api
     volumes:
       # Bind mount source code for hot reload
       - ./src:/app/src

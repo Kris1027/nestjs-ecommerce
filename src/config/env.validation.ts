@@ -33,6 +33,12 @@ const envSchema = z
     DB_POOL_MAX: z.coerce.number().default(20),
     DB_POOL_IDLE_TIMEOUT_MS: z.coerce.number().default(300_000),
     DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5_000),
+    OTEL_ENABLED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((val) => val === 'true'),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.url().default('http://localhost:4318'),
+    OTEL_SERVICE_NAME: z.string().default('nestjs-ecommerce-api'),
   })
   .refine(
     (data) =>
