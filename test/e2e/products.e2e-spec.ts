@@ -34,7 +34,7 @@ describe('Products (e2e)', () => {
 
     // Every product test needs an admin + a category
     const admin = await createAdminAndLogin(app, {
-      name: 'Admin',
+      firstName: 'Admin',
       email: 'admin@example.com',
       password: 'Password123',
     });
@@ -158,7 +158,7 @@ describe('Products (e2e)', () => {
       });
     });
 
-    it('POST /products should return 400 for invalid categoryId', async () => {
+    it('POST /products should return 404 for non-existent categoryId', async () => {
       const response = await request(app.getHttpServer())
         .post('/products')
         .set('Authorization', `Bearer ${adminToken}`)

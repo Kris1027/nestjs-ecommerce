@@ -17,6 +17,13 @@ export default async function globalTeardown(): Promise<void> {
   const devDbName = databaseUrl.pathname.replace('/', '');
   const testDbName = devDbName.endsWith(TEST_DB_SUFFIX) ? devDbName : devDbName + TEST_DB_SUFFIX;
 
+  // Safety guard: only drop databases ending with _test
+  if (!testDbName.endsWith(TEST_DB_SUFFIX)) {
+    throw new Error(
+      `Refusing to drop database "${testDbName}" — name must end with "${TEST_DB_SUFFIX}"`,
+    );
+  }
+
   const client = new pg.Client({
     host: databaseUrl.hostname,
     port: Number(databaseUrl.port) || 5432,

@@ -116,7 +116,7 @@ export async function createTestApp(): Promise<INestApplication<App>> {
  * Why CASCADE? Foreign key constraints would block truncation otherwise.
  * CASCADE propagates the truncation to dependent tables automatically.
  *
- * Call this in beforeAll() of each test suite to start with a clean slate.
+ * Call this in beforeEach() of each test suite to start with a clean slate.
  */
 export async function truncateAllTables(prisma: PrismaService): Promise<void> {
   const tableNames = [

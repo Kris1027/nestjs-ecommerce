@@ -13,7 +13,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
  */
 export async function registerUser(
   app: INestApplication<App>,
-  data: { name: string; email: string; password: string },
+  data: { email: string; password: string; firstName?: string; lastName?: string },
 ): Promise<request.Response> {
   return request(app.getHttpServer()).post('/auth/register').send(data);
 }
@@ -39,7 +39,7 @@ export async function loginUser(
  */
 export async function registerAndLogin(
   app: INestApplication<App>,
-  data: { name: string; email: string; password: string },
+  data: { email: string; password: string; firstName?: string; lastName?: string },
 ): Promise<{ accessToken: string; refreshToken: string }> {
   // Register via real endpoint
   await registerUser(app, data);
@@ -71,7 +71,7 @@ export async function registerAndLogin(
  */
 export async function createAdminAndLogin(
   app: INestApplication<App>,
-  data: { name: string; email: string; password: string },
+  data: { email: string; password: string; firstName?: string; lastName?: string },
 ): Promise<{ accessToken: string; refreshToken: string }> {
   // Register and verify email
   await registerUser(app, data);
