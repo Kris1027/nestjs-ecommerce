@@ -25,6 +25,7 @@ const productListSelect = {
   isActive: true,
   isFeatured: true,
   createdAt: true,
+  updatedAt: true,
   category: {
     select: { id: true, name: true, slug: true },
   },
@@ -73,6 +74,7 @@ type RawProductRow = {
   is_active: boolean;
   is_featured: boolean;
   created_at: Date;
+  updated_at: Date;
   category_id: string;
   category_name: string;
   category_slug: string;
@@ -150,6 +152,7 @@ export class ProductsService {
       isActive: row.is_active,
       isFeatured: row.is_featured,
       createdAt: row.created_at,
+      updatedAt: row.updated_at,
       category: {
         id: row.category_id,
         name: row.category_name,
@@ -185,6 +188,7 @@ export class ProductsService {
         p.is_active,
         p.is_featured,
         p.created_at,
+        p.updated_at,
         c.id AS category_id,
         c.name AS category_name,
         c.slug AS category_slug,

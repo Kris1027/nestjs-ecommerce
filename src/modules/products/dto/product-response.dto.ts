@@ -60,6 +60,9 @@ export class ProductListItemDto {
   @ApiProperty({ example: '2025-01-15T12:00:00.000Z' })
   createdAt: Date;
 
+  @ApiProperty({ example: '2025-01-15T12:00:00.000Z' })
+  updatedAt: Date;
+
   @ApiProperty({ type: ProductCategoryDto })
   category: ProductCategoryDto;
 
@@ -77,9 +80,6 @@ export class ProductDetailDto extends ProductListItemDto {
 
   @ApiProperty({ example: 'clxyz789def012' })
   categoryId: string;
-
-  @ApiProperty({ example: '2025-01-15T12:00:00.000Z' })
-  updatedAt: Date;
 
   @ApiProperty({ type: [ProductImageDto], description: 'All product images' })
   declare images: ProductImageDto[];
