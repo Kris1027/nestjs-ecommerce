@@ -63,8 +63,8 @@ postman
 implementation-docs/
 CLAUDE.md
 
-# Prisma generated client
-src/generated
+# Prisma generated client — committed for consistent Docker/Railway builds
+# src/generated
 
 # Exported OpenAPI spec (generated from running server)
 openapi.json

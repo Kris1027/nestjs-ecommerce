@@ -9,6 +9,8 @@ FROM node:22-slim AS base
 # corepack is Node's built-in package manager manager
 # It reads "packageManager" from package.json and installs that exact pnpm version
 # This guarantees the same pnpm version locally and in Docker
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl=3.0.18-1~deb12u2 && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable
 
 WORKDIR /app
@@ -31,8 +33,7 @@ COPY prisma/schema.prisma ./prisma/schema.prisma
 # --ignore-scripts: skip postinstall (prisma generate) — prisma CLI is a devDependency
 # The generated client is copied from the build stage instead
 # --mount=type=cache: BuildKit feature — persists pnpm store across builds for speed
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --prod --frozen-lockfile --ignore-scripts
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # ============================================================
 # Stage 3: BUILD — install all deps and compile TypeScript
@@ -43,8 +44,9 @@ COPY package.json pnpm-lock.yaml ./
 COPY prisma/schema.prisma ./prisma/schema.prisma
 
 # Install ALL dependencies (including devDeps like typescript, @nestjs/cli)
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+# --ignore-scripts: skip postinstall to avoid regenerating Prisma client
+# We use the pre-generated client from the source for consistent builds
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # NOW copy source code — this layer busts cache only when code changes,
 # not when dependencies change (that's the whole point of copying package.json first)
@@ -54,11 +56,32 @@ COPY . .
 RUN pnpm build
 
 # ============================================================
-# Stage 4: PRODUCTION — minimal runtime image
+# Stage 4: DEVELOPMENT — for docker-compose local dev
+# ============================================================
+FROM base AS development
+
+ENV NODE_ENV=development
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+COPY prisma/schema.prisma ./prisma/schema.prisma
+
+RUN pnpm install --frozen-lockfile
+
+# Copy all source (will be overridden by volume mount in docker-compose)
+COPY . .
+
+EXPOSE 3000 9229
+
+CMD ["pnpm", "run", "start:dev"]
+
+# ============================================================
+# Stage 5: PRODUCTION — minimal runtime image (last = default target)
 # ============================================================
 FROM base AS production
 
-ENV NODE_ENV=production
+# NODE_ENV is set via Railway environment variables (staging/production)
 
 # Create a non-root user — if the app gets compromised, the attacker
 # can't install packages, modify system files, or escalate privileges
@@ -80,6 +103,7 @@ COPY --from=build --chown=nodejs:nodejs /app/prisma ./prisma
 # Copy package.json (needed by Node.js for module resolution)
 COPY --from=build --chown=nodejs:nodejs /app/package.json ./
 
+
 # Switch to non-root user BEFORE exposing ports or starting the app
 USER nodejs
 
@@ -94,25 +118,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # "node dist/main.js" not "pnpm start:prod" — avoids pnpm overhead
 # and ensures SIGTERM goes directly to Node (important for graceful shutdown)
 CMD ["node", "--require", "./dist/src/instrumentation.js", "dist/src/main.js"]
-
-# ============================================================
-# Stage 5: DEVELOPMENT — for docker-compose local dev
-# ============================================================
-FROM base AS development
-
-ENV NODE_ENV=development
-
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml ./
-COPY prisma/schema.prisma ./prisma/schema.prisma
-
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
-
-# Copy all source (will be overridden by volume mount in docker-compose)
-COPY . .
-
-EXPOSE 3000 9229
-
-CMD ["pnpm", "run", "start:dev"]

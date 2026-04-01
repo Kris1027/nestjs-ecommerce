@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "NotificationType" ADD VALUE 'REFUND_REQUEST_CREATED';

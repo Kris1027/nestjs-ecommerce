@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import 'dotenv/config';
 
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'production', 'test']),
+    NODE_ENV: z.enum(['development', 'staging', 'production', 'test']),
     PORT: z.coerce.number().default(3000),
     DATABASE_URL: z.string().min(1),
     CORS_ORIGIN: z
@@ -29,7 +28,7 @@ const envSchema = z
     EMAIL_FROM: z.email(),
     STORE_URL: z.url(),
     ADMIN_URL: z.url(),
-    REDIS_URL: z.url(),
+    REDIS_URL: z.string().min(1),
     DB_POOL_MAX: z.coerce.number().default(20),
     DB_POOL_IDLE_TIMEOUT_MS: z.coerce.number().default(300_000),
     DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().default(5_000),
@@ -42,7 +41,7 @@ const envSchema = z
   })
   .refine(
     (data) =>
-      data.NODE_ENV !== 'production' ||
+      (data.NODE_ENV !== 'production' && data.NODE_ENV !== 'staging') ||
       (data.CORS_ORIGIN !== undefined && data.CORS_ORIGIN.length > 0),
     {
       message: 'CORS_ORIGIN is required in production (comma-separated URLs)',
