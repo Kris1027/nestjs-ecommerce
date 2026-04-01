@@ -1,3 +1,0 @@
--- This migration is intentionally empty.
--- Prisma detects drift on the GIN index for search_vector (Unsupported type)
--- but the index is managed manually and must be preserved.

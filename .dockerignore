@@ -8,8 +8,8 @@ dist
 build
 coverage
 
-# Generated files - Prisma client is regenerated via postinstall hook
-src/generated
+# Generated Prisma client is included to ensure consistent builds
+# src/generated
 
 # Version control - image doesn't need git history (~50MB+ savings)
 .git
