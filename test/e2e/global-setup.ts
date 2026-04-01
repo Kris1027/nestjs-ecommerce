@@ -1,7 +1,5 @@
 import 'dotenv/config';
 import { execSync } from 'child_process';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import pg from 'pg';
 
 const TEST_DB_SUFFIX = '_test';
@@ -56,16 +54,6 @@ export default async function globalSetup(): Promise<void> {
     stdio: 'inherit',
     env: { ...process.env, DATABASE_URL: testDatabaseUrl.toString() },
   });
-
-  // Run PostgreSQL-specific extensions (triggers, functions) that Prisma cannot express
-  const extensionsClient = new pg.Client({ connectionString: testDatabaseUrl.toString() });
-  try {
-    await extensionsClient.connect();
-    const sql = readFileSync(join(__dirname, '../../prisma/setup-extensions.sql'), 'utf-8');
-    await extensionsClient.query(sql);
-  } finally {
-    await extensionsClient.end();
-  }
 
   // Store the test DATABASE_URL so test suites use the correct database
   process.env.DATABASE_URL = testDatabaseUrl.toString();
