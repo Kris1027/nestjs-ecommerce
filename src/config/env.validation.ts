@@ -44,7 +44,7 @@ const envSchema = z
       (data.NODE_ENV !== 'production' && data.NODE_ENV !== 'staging') ||
       (data.CORS_ORIGIN !== undefined && data.CORS_ORIGIN.length > 0),
     {
-      message: 'CORS_ORIGIN is required in production (comma-separated URLs)',
+      message: 'CORS_ORIGIN is required in production/staging (comma-separated URLs)',
       path: ['CORS_ORIGIN'],
     },
   );

@@ -9,7 +9,7 @@ FROM node:22-slim AS base
 # corepack is Node's built-in package manager manager
 # It reads "packageManager" from package.json and installs that exact pnpm version
 # This guarantees the same pnpm version locally and in Docker
-RUN apt-get update -y && apt-get install -y --no-install-recommends openssl=3.0.18-1~deb12u2 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable
 
@@ -44,9 +44,8 @@ COPY package.json pnpm-lock.yaml ./
 COPY prisma/schema.prisma ./prisma/schema.prisma
 
 # Install ALL dependencies (including devDeps like typescript, @nestjs/cli)
-# --ignore-scripts: skip postinstall to avoid regenerating Prisma client
-# We use the pre-generated client from the source for consistent builds
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# onlyBuiltDependencies in package.json controls which scripts run
+RUN pnpm install --frozen-lockfile
 
 # NOW copy source code — this layer busts cache only when code changes,
 # not when dependencies change (that's the whole point of copying package.json first)
