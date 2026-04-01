@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import pg from 'pg';
 
 const TEST_DB_SUFFIX = '_test';
@@ -9,7 +11,7 @@ const TEST_DB_SUFFIX = '_test';
  *
  * 1. Derives a test database name from DATABASE_URL by appending "_test"
  * 2. Creates the test database if it doesn't exist
- * 3. Runs Prisma migrations to create all tables
+ * 3. Runs Prisma db push to sync schema (no migrations needed)
  *
  * Why derive from DATABASE_URL? So .env.test only needs NODE_ENV=test —
  * credentials, host, port all come from .env (your local setup).
@@ -46,14 +48,24 @@ export default async function globalSetup(): Promise<void> {
     await client.end();
   }
 
-  // Override DATABASE_URL to point to the test database for Prisma migrations
+  // Override DATABASE_URL to point to the test database for Prisma db push
   const testDatabaseUrl = new URL(process.env.DATABASE_URL!);
   testDatabaseUrl.pathname = `/${testDbName}`;
 
-  execSync('pnpm prisma migrate deploy', {
+  execSync('pnpm prisma db push', {
     stdio: 'inherit',
     env: { ...process.env, DATABASE_URL: testDatabaseUrl.toString() },
   });
+
+  // Run PostgreSQL-specific extensions (triggers, functions) that Prisma cannot express
+  const extensionsClient = new pg.Client({ connectionString: testDatabaseUrl.toString() });
+  try {
+    await extensionsClient.connect();
+    const sql = readFileSync(join(__dirname, '../../prisma/setup-extensions.sql'), 'utf-8');
+    await extensionsClient.query(sql);
+  } finally {
+    await extensionsClient.end();
+  }
 
   // Store the test DATABASE_URL so test suites use the correct database
   process.env.DATABASE_URL = testDatabaseUrl.toString();
