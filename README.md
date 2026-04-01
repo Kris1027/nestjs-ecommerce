@@ -22,7 +22,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
 | **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 688 tests) |
 | **Containerization** | Docker + Docker Compose                   |
-| **CI/CD**          | GitHub Actions + Railway PR Previews        |
+| **CI/CD**          | GitHub Actions (lint, test, build)           |
 | **Hosting**        | Railway (staging + production environments) |
 | **Observability**  | OpenTelemetry (traces) + Jaeger             |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
@@ -401,19 +401,19 @@ Hosted on **Railway** with isolated staging and production environments.
 
 ## CI/CD
 
-GitHub Actions runs **3 parallel jobs** on every PR and push to main:
+GitHub Actions runs **4 parallel jobs** on every PR and push to main:
 
-| Job       | Timeout | Description                          |
-| --------- | ------- | ------------------------------------ |
-| **Lint**  | 5 min   | ESLint checks                        |
-| **Test**  | 10 min  | 657 unit tests + 31 E2E tests via Jest |
-| **Build** | 5 min   | TypeScript compilation (type safety) |
+| Job        | Timeout | Description                                    |
+| ---------- | ------- | ---------------------------------------------- |
+| **Lint**   | 5 min   | ESLint checks                                  |
+| **Test**   | 10 min  | 657 unit tests + 31 E2E tests via Jest         |
+| **Build**  | 5 min   | TypeScript compilation (type safety)            |
+| **Docker** | 10 min  | Build production Docker image (same as Railway) |
 
 - pnpm dependency caching for fast runs
 - `--frozen-lockfile` to prevent dependency drift
 - Concurrency control (cancels stale PR runs, never cancels main)
 - Least-privilege permissions (`contents: read`)
-- Railway PR Preview Environments for deploy verification before merge
 
 ---
 
