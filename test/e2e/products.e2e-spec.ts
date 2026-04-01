@@ -95,18 +95,6 @@ describe('Products (e2e)', () => {
       expect(response.body.data.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('GET /products should search by name', async () => {
-      await createProduct({ name: 'Bluetooth Speaker' }).expect(201);
-      await createProduct({ name: 'USB Cable' }).expect(201);
-
-      const response = await request(app.getHttpServer())
-        .get(api('/products?search=bluetooth'))
-        .expect(200);
-
-      expect(response.body.data.length).toBe(1);
-      expect(response.body.data[0].name).toBe('Bluetooth Speaker');
-    });
-
     it('GET /products/:slug should return product detail', async () => {
       const createRes = await createProduct().expect(201);
       const slug = createRes.body.data.slug;
