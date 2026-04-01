@@ -20,9 +20,10 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
-| **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 689 tests) |
+| **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 688 tests) |
 | **Containerization** | Docker + Docker Compose                   |
-| **CI/CD**          | GitHub Actions (lint, test, build)          |
+| **CI/CD**          | GitHub Actions + Railway PR Previews        |
+| **Hosting**        | Railway (staging + production environments) |
 | **Observability**  | OpenTelemetry (traces) + Jaeger             |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
 
@@ -255,8 +256,8 @@ pnpm install
 cp .env.example .env
 # Edit .env with your database, Redis, Stripe, Cloudinary, and Resend credentials
 
-# Run database migrations
-pnpm prisma migrate dev
+# Push database schema
+pnpm prisma db push
 
 # Seed the database
 pnpm prisma:seed
@@ -295,7 +296,7 @@ The Docker Compose setup includes:
 | `pnpm test:watch`    | Run tests in watch mode             |
 | `pnpm test:cov`      | Generate coverage report            |
 | `pnpm test:e2e`      | Run E2E tests                       |
-| `pnpm prisma migrate dev` | Create/apply database migrations |
+| `pnpm prisma db push` | Sync schema to database          |
 | `pnpm prisma:seed`   | Seed the database                   |
 | `pnpm docker:up`     | Start Docker services               |
 | `pnpm docker:down`   | Stop Docker services                |
@@ -363,10 +364,10 @@ pnpm test:cov
 pnpm test:e2e
 ```
 
-- **5 test suites** with **32 E2E tests** running against real PostgreSQL and Redis
+- **5 test suites** with **31 E2E tests** running against real PostgreSQL and Redis
 - Test database auto-created (appends `_test` to dev DB name) and dropped after each run
 - External services (Stripe, Resend, Cloudinary) mocked at the provider level; everything else is real
-- Covers health checks, full auth lifecycle, categories CRUD with RBAC, and products with filtering/search
+- Covers health checks, full auth lifecycle, categories CRUD with RBAC, and products with filtering
 
 | Suite | Tests | Coverage |
 |-------|-------|----------|
@@ -374,7 +375,27 @@ pnpm test:e2e
 | `health.e2e-spec.ts` | 2 | Liveness + readiness probes |
 | `auth.e2e-spec.ts` | 11 | Register, login, refresh, logout, validation |
 | `categories.e2e-spec.ts` | 10 | Public listing, RBAC (401/403), admin CRUD |
-| `products.e2e-spec.ts` | 8 | Listing, search, category filter, admin create |
+| `products.e2e-spec.ts` | 7 | Listing, category filter, slug lookup, admin create |
+
+---
+
+## Deployment
+
+Hosted on **Railway** with isolated staging and production environments.
+
+| Service | Staging |
+|---------|---------|
+| **API** | [nestjs-ecommerce-api-staging.up.railway.app](https://nestjs-ecommerce-api-staging.up.railway.app) |
+| **PostgreSQL** | Managed by Railway |
+| **Redis** | Docker image (`redis:7`) on Railway |
+
+### How it works
+
+- **Auto-deploy on merge** — pushing to `main` triggers a Railway deployment
+- **PR Preview Environments** — each PR gets a temporary Railway environment for testing
+- **Multi-stage Dockerfile** — optimized production image with non-root user, health checks, and graceful shutdown
+- **Environment isolation** — staging and production have separate databases, Redis instances, and env variables
+- **Schema sync** — `prisma db push` syncs the database schema (no migrations)
 
 ---
 
@@ -385,13 +406,14 @@ GitHub Actions runs **3 parallel jobs** on every PR and push to main:
 | Job       | Timeout | Description                          |
 | --------- | ------- | ------------------------------------ |
 | **Lint**  | 5 min   | ESLint checks                        |
-| **Test**  | 10 min  | 657 unit tests + 32 E2E tests via Jest |
+| **Test**  | 10 min  | 657 unit tests + 31 E2E tests via Jest |
 | **Build** | 5 min   | TypeScript compilation (type safety) |
 
 - pnpm dependency caching for fast runs
 - `--frozen-lockfile` to prevent dependency drift
 - Concurrency control (cancels stale PR runs, never cancels main)
 - Least-privilege permissions (`contents: read`)
+- Railway PR Preview Environments for deploy verification before merge
 
 ---
 
