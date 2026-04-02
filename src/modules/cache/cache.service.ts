@@ -54,7 +54,7 @@ export class CacheService implements OnModuleDestroy {
 
   async invalidateByPrefix(prefix: string): Promise<void> {
     try {
-      const pattern = `keyv:${prefix}*`;
+      const pattern = `${prefix}*`;
       let cursor = '0';
       let totalDeleted = 0;
 

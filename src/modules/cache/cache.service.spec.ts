@@ -123,7 +123,7 @@ describe('CacheService', () => {
     it('should scan and delete matching keys', async () => {
       mockRedisInstance.scan.mockResolvedValueOnce([
         '0',
-        ['keyv:cache:products:list:a', 'keyv:cache:products:list:b'],
+        ['cache:products:list:a', 'cache:products:list:b'],
       ]);
 
       await service.invalidateByPrefix('cache:products:');
@@ -131,7 +131,7 @@ describe('CacheService', () => {
       expect(mockRedisInstance.scan).toHaveBeenCalledWith(
         '0',
         'MATCH',
-        'keyv:cache:products:*',
+        'cache:products:*',
         'COUNT',
         100,
       );
@@ -141,8 +141,8 @@ describe('CacheService', () => {
 
     it('should handle multiple SCAN iterations', async () => {
       mockRedisInstance.scan
-        .mockResolvedValueOnce(['42', ['keyv:cache:products:list:a']])
-        .mockResolvedValueOnce(['0', ['keyv:cache:products:list:b']]);
+        .mockResolvedValueOnce(['42', ['cache:products:list:a']])
+        .mockResolvedValueOnce(['0', ['cache:products:list:b']]);
 
       await service.invalidateByPrefix('cache:products:');
 
