@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client';
@@ -60,6 +66,17 @@ export class CategoriesService {
       .join('&');
 
     return `${CACHE_PREFIXES.CATEGORIES_LIST}:${params}`;
+  }
+
+  private async validateUniqueName(name: string, excludeId?: string): Promise<void> {
+    const existing = await this.prisma.category.findUnique({
+      where: { name },
+      select: { id: true },
+    });
+
+    if (existing && existing.id !== excludeId) {
+      throw new ConflictException(`Category with name "${name}" already exists`);
+    }
   }
 
   private async validateParent(parentId: string): Promise<void> {
@@ -174,6 +191,8 @@ export class CategoriesService {
   // ============================================
 
   async create(data: CreateCategoryDto): Promise<CategoryResponse> {
+    await this.validateUniqueName(data.name);
+
     if (data.parentId) {
       await this.validateParent(data.parentId);
     }
@@ -210,6 +229,10 @@ export class CategoriesService {
 
     if (!category) {
       throw new NotFoundException('Category not found');
+    }
+
+    if (data.name !== undefined) {
+      await this.validateUniqueName(data.name, id);
     }
 
     if (data.parentId !== undefined) {

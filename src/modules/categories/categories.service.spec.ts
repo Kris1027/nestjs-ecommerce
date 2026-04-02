@@ -11,7 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CacheService } from '../cache/cache.service';
 import { CacheEvents } from '../cache/cache.events';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 
 describe('CategoriesService', () => {
   let service: CategoriesService;
@@ -255,7 +255,9 @@ describe('CategoriesService', () => {
     });
 
     it('should validate parent category exists and is active', async () => {
-      prisma.category.findUnique.mockResolvedValue({ id: 'parent-1', isActive: true });
+      prisma.category.findUnique
+        .mockResolvedValueOnce(null) // validateUniqueName — no duplicate
+        .mockResolvedValueOnce({ id: 'parent-1', isActive: true }); // validateParent
       prisma.category.create.mockResolvedValue(mockCategory);
 
       await service.create({
@@ -283,7 +285,9 @@ describe('CategoriesService', () => {
     });
 
     it('should throw NotFoundException if parent does not exist', async () => {
-      prisma.category.findUnique.mockResolvedValue(null);
+      prisma.category.findUnique
+        .mockResolvedValueOnce(null) // validateUniqueName — no duplicate
+        .mockResolvedValueOnce(null); // validateParent — not found
 
       await expect(
         service.create({ name: 'Child', parentId: 'nonexistent', sortOrder: 0 }),
@@ -293,11 +297,23 @@ describe('CategoriesService', () => {
     });
 
     it('should throw BadRequestException if parent is inactive', async () => {
-      prisma.category.findUnique.mockResolvedValue({ id: 'parent-1', isActive: false });
+      prisma.category.findUnique
+        .mockResolvedValueOnce(null) // validateUniqueName — no duplicate
+        .mockResolvedValueOnce({ id: 'parent-1', isActive: false }); // validateParent — inactive
 
       await expect(
         service.create({ name: 'Child', parentId: 'parent-1', sortOrder: 0 }),
       ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.category.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException if category name already exists', async () => {
+      prisma.category.findUnique.mockResolvedValueOnce({ id: 'existing-id' }); // validateUniqueName — duplicate found
+
+      await expect(service.create({ name: 'Electronics', sortOrder: 0 })).rejects.toThrow(
+        ConflictException,
+      );
 
       expect(prisma.category.create).not.toHaveBeenCalled();
     });

@@ -290,11 +290,11 @@ export type CategoryOrderByWithRelationInput = {
 export type CategoryWhereUniqueInput = Prisma.AtLeast<
   {
     id?: string;
+    name?: string;
     slug?: string;
     AND?: Prisma.CategoryWhereInput | Prisma.CategoryWhereInput[];
     OR?: Prisma.CategoryWhereInput[];
     NOT?: Prisma.CategoryWhereInput | Prisma.CategoryWhereInput[];
-    name?: Prisma.StringFilter<'Category'> | string;
     description?: Prisma.StringNullableFilter<'Category'> | string | null;
     imageUrl?: Prisma.StringNullableFilter<'Category'> | string | null;
     cloudinaryPublicId?: Prisma.StringNullableFilter<'Category'> | string | null;
@@ -310,7 +310,7 @@ export type CategoryWhereUniqueInput = Prisma.AtLeast<
     children?: Prisma.CategoryListRelationFilter;
     products?: Prisma.ProductListRelationFilter;
   },
-  'id' | 'slug'
+  'id' | 'name' | 'slug'
 >;
 
 export type CategoryOrderByWithAggregationInput = {
