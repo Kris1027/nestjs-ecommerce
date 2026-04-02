@@ -454,7 +454,7 @@ describe('ProductsService', () => {
 
       await service.create(createDto);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.PRODUCT_CHANGED,
         expect.objectContaining({ productId: mockProduct.id, action: 'create' }),
       );
@@ -494,7 +494,7 @@ describe('ProductsService', () => {
 
       await service.update(mockProduct.id, { name: 'iPhone 16' });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.PRODUCT_CHANGED,
         expect.objectContaining({ productId: mockProduct.id, action: 'update' }),
       );
@@ -568,7 +568,7 @@ describe('ProductsService', () => {
 
       await service.deactivate(mockProduct.id);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.PRODUCT_CHANGED,
         expect.objectContaining({ productId: mockProduct.id, action: 'deactivate' }),
       );
@@ -619,7 +619,7 @@ describe('ProductsService', () => {
 
       await service.hardDelete(mockProduct.id);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.PRODUCT_CHANGED,
         expect.objectContaining({ productId: mockProduct.id, action: 'delete' }),
       );

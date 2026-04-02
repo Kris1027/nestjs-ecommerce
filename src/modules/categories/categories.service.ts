@@ -194,7 +194,7 @@ export class CategoriesService {
       select: categorySelect,
     });
 
-    this.eventEmitter.emit(
+    await this.eventEmitter.emitAsync(
       CacheEvents.CATEGORY_CHANGED,
       new CategoryChangedEvent(category.id, 'create'),
     );
@@ -236,7 +236,10 @@ export class CategoriesService {
       select: categorySelect,
     });
 
-    this.eventEmitter.emit(CacheEvents.CATEGORY_CHANGED, new CategoryChangedEvent(id, 'update'));
+    await this.eventEmitter.emitAsync(
+      CacheEvents.CATEGORY_CHANGED,
+      new CategoryChangedEvent(id, 'update'),
+    );
 
     return updated;
   }
@@ -260,7 +263,7 @@ export class CategoriesService {
       data: { isActive: false },
     });
 
-    this.eventEmitter.emit(
+    await this.eventEmitter.emitAsync(
       CacheEvents.CATEGORY_CHANGED,
       new CategoryChangedEvent(id, 'deactivate'),
     );
@@ -282,7 +285,10 @@ export class CategoriesService {
       where: { id },
     });
 
-    this.eventEmitter.emit(CacheEvents.CATEGORY_CHANGED, new CategoryChangedEvent(id, 'delete'));
+    await this.eventEmitter.emitAsync(
+      CacheEvents.CATEGORY_CHANGED,
+      new CategoryChangedEvent(id, 'delete'),
+    );
 
     // Clean up Cloudinary image (skip for legacy URL-only images)
     if (category.cloudinaryPublicId) {
@@ -323,7 +329,7 @@ export class CategoriesService {
         select: categorySelect,
       });
 
-      this.eventEmitter.emit(
+      await this.eventEmitter.emitAsync(
         CacheEvents.CATEGORY_CHANGED,
         new CategoryChangedEvent(id, 'image_change'),
       );
