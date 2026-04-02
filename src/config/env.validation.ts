@@ -1,14 +1,19 @@
 import { existsSync } from 'fs';
-import { config } from 'dotenv';
 import { resolve } from 'path';
 import { z } from 'zod';
 
-// Load environment-specific .env file (e.g. .env.development, .env.production)
-// Falls back to .env.development for test/unknown environments
+// Load environment-specific .env file for local development.
+// In production/staging (Railway), env vars are injected by the platform — no .env file needed.
 const nodeEnv = process.env.NODE_ENV ?? 'development';
 const envFile = resolve(process.cwd(), `.env.${nodeEnv}`);
 const fallback = resolve(process.cwd(), '.env.development');
-config({ path: existsSync(envFile) ? envFile : fallback });
+const envPath = existsSync(envFile) ? envFile : existsSync(fallback) ? fallback : null;
+
+if (envPath) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const dotenv = require('dotenv') as { config: (options: { path: string }) => void };
+  dotenv.config({ path: envPath });
+}
 
 const envSchema = z
   .object({
