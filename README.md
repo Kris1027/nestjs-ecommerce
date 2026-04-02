@@ -253,8 +253,8 @@ cd nestjs-ecommerce-api
 pnpm install
 
 # Configure environment
-cp .env.example .env
-# Edit .env with your database, Redis, Stripe, Cloudinary, and Resend credentials
+cp .env.example .env.development
+# Edit .env.development with your database, Redis, Stripe, Cloudinary, and Resend credentials
 
 # Push database schema
 pnpm prisma db push
@@ -320,11 +320,18 @@ All endpoints include request/response schemas, authentication requirements, que
 
 ## Environment Variables
 
+The app uses **environment-specific `.env` files** — `.env.development` for local work, `.env.production` for deployed environments. The correct file is loaded automatically based on `NODE_ENV` (falls back to `.env.development` for test/unknown environments).
+
+```bash
+cp .env.example .env.development   # Local development
+cp .env.example .env.production    # Production values (Vercel URLs, CORS_ORIGIN, etc.)
+```
+
 See [`.env.example`](.env.example) for all required variables. Key groups:
 
 | Group           | Variables                                              |
 | --------------- | ------------------------------------------------------ |
-| **App**         | `NODE_ENV`, `PORT`, `FRONTEND_URL`, `CORS_ORIGIN`     |
+| **App**         | `NODE_ENV`, `PORT`, `STORE_URL`, `ADMIN_URL`, `CORS_ORIGIN` |
 | **Database**    | `DATABASE_URL`                                         |
 | **JWT**         | `JWT_SECRET`, `JWT_REFRESH_SECRET`, expiration configs  |
 | **Stripe**      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`           |
