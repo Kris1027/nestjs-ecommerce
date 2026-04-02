@@ -38,6 +38,9 @@ import { AppCacheModule } from './modules/cache/cache.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
+      // Env vars are loaded eagerly in env.validation.ts via dotenv
+      // so ConfigModule doesn't need to load a file itself
+      ignoreEnvFile: true,
     }),
 
     ThrottlerModule.forRoot({
