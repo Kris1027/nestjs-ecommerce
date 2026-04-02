@@ -379,7 +379,7 @@ export class ProductsService {
       select: productDetailSelect,
     });
 
-    this.eventEmitter.emit(
+    await this.eventEmitter.emitAsync(
       CacheEvents.PRODUCT_CHANGED,
       new ProductChangedEvent(product.id, 'create'),
     );
@@ -417,7 +417,10 @@ export class ProductsService {
       select: productDetailSelect,
     });
 
-    this.eventEmitter.emit(CacheEvents.PRODUCT_CHANGED, new ProductChangedEvent(id, 'update'));
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(id, 'update'),
+    );
 
     return updated as ProductDetail;
   }
@@ -441,7 +444,10 @@ export class ProductsService {
       data: { isActive: false },
     });
 
-    this.eventEmitter.emit(CacheEvents.PRODUCT_CHANGED, new ProductChangedEvent(id, 'deactivate'));
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(id, 'deactivate'),
+    );
 
     return { message: 'Product deactivated successfully' };
   }
@@ -468,7 +474,10 @@ export class ProductsService {
       where: { id },
     });
 
-    this.eventEmitter.emit(CacheEvents.PRODUCT_CHANGED, new ProductChangedEvent(id, 'delete'));
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(id, 'delete'),
+    );
 
     // Batch delete from Cloudinary after DB cascade (best-effort)
     if (publicIds.length > 0) {
@@ -506,7 +515,7 @@ export class ProductsService {
       },
     });
 
-    this.eventEmitter.emit(
+    await this.eventEmitter.emitAsync(
       CacheEvents.PRODUCT_CHANGED,
       new ProductChangedEvent(productId, 'image_change'),
     );
@@ -547,7 +556,7 @@ export class ProductsService {
         },
       });
 
-      this.eventEmitter.emit(
+      await this.eventEmitter.emitAsync(
         CacheEvents.PRODUCT_CHANGED,
         new ProductChangedEvent(productId, 'image_change'),
       );
@@ -595,7 +604,7 @@ export class ProductsService {
       });
     }
 
-    this.eventEmitter.emit(
+    await this.eventEmitter.emitAsync(
       CacheEvents.PRODUCT_CHANGED,
       new ProductChangedEvent(productId, 'image_change'),
     );

@@ -276,7 +276,7 @@ describe('CategoriesService', () => {
 
       await service.create({ name: 'Electronics', sortOrder: 0 });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.CATEGORY_CHANGED,
         expect.objectContaining({ categoryId: mockCategory.id, action: 'create' }),
       );
@@ -320,7 +320,7 @@ describe('CategoriesService', () => {
 
       await service.update(mockCategory.id, { name: 'Updated Electronics' });
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.CATEGORY_CHANGED,
         expect.objectContaining({ categoryId: mockCategory.id, action: 'update' }),
       );
@@ -406,7 +406,7 @@ describe('CategoriesService', () => {
 
       await service.deactivate(mockCategory.id);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.CATEGORY_CHANGED,
         expect.objectContaining({ categoryId: mockCategory.id, action: 'deactivate' }),
       );
@@ -451,7 +451,7 @@ describe('CategoriesService', () => {
 
       await service.hardDelete(mockCategory.id);
 
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         CacheEvents.CATEGORY_CHANGED,
         expect.objectContaining({ categoryId: mockCategory.id, action: 'delete' }),
       );
