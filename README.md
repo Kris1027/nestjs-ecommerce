@@ -269,6 +269,9 @@ pnpm start:dev
 ### Docker Setup
 
 ```bash
+# Configure environment first
+cp .env.example .env.development
+
 # Start PostgreSQL, Redis, and the app with hot reload
 docker compose up
 
@@ -276,9 +279,11 @@ docker compose up
 docker compose up --build
 ```
 
+Docker Compose loads `.env.development` automatically — no need to create a separate `.env` file.
+
 The Docker Compose setup includes:
-- **PostgreSQL 17** with health checks and persistent volume
-- **Redis 7** with health checks and persistent volume
+- **PostgreSQL 17** with health checks and persistent volume (port `5433`)
+- **Redis 7** with health checks and persistent volume (port `6379`)
 - **Jaeger** for distributed trace viewing at `http://localhost:16686`
 - **NestJS app** with hot reload, OTel tracing enabled via bind mounts
 
