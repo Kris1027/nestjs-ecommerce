@@ -5,6 +5,7 @@ import { stripHtmlTags } from '../../../common/utils/sanitize.util';
 const updateCategorySchema = z.object({
   name: z
     .string()
+    .trim()
     .max(100, 'Name too long')
     .transform(stripHtmlTags)
     .pipe(z.string().min(2, 'Name must be at least 2 characters'))
