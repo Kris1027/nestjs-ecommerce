@@ -96,7 +96,7 @@ services:
         condition: service_started
     env_file:
       # Loads your .env file — same one you use for local development
-      - .env
+      - .env.development
     environment:
       # Override .env to use Docker internal networking (service names as hosts)
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-nestjs_ecommerce}?schema=public
