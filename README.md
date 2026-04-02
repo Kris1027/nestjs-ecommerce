@@ -20,7 +20,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
-| **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 689 tests) |
+| **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 690 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (lint, test, build)           |
 | **Hosting**        | Railway (staging + production environments) |
@@ -359,7 +359,7 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **44 test suites** with **658 unit tests**
+- **44 test suites** with **659 unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
@@ -413,7 +413,7 @@ GitHub Actions runs **4 parallel jobs** on every PR and push to main:
 | Job        | Timeout | Description                                    |
 | ---------- | ------- | ---------------------------------------------- |
 | **Lint**   | 5 min   | ESLint checks                                  |
-| **Test**   | 10 min  | 658 unit tests + 31 E2E tests via Jest         |
+| **Test**   | 10 min  | 659 unit tests + 31 E2E tests via Jest         |
 | **Build**  | 5 min   | TypeScript compilation (type safety)            |
 | **Docker** | 10 min  | Build production Docker image (same as Railway) |
 

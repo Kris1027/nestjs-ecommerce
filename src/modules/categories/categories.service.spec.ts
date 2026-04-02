@@ -350,6 +350,18 @@ describe('CategoriesService', () => {
       expect(prisma.category.update).not.toHaveBeenCalled();
     });
 
+    it('should throw ConflictException if updating name to an existing name', async () => {
+      prisma.category.findUnique
+        .mockResolvedValueOnce({ id: mockCategory.id }) // find category being updated
+        .mockResolvedValueOnce({ id: 'other-category-id' }); // validateUniqueName — different category owns this name
+
+      await expect(service.update(mockCategory.id, { name: 'Existing Category' })).rejects.toThrow(
+        ConflictException,
+      );
+
+      expect(prisma.category.update).not.toHaveBeenCalled();
+    });
+
     it('should throw BadRequestException if setting self as parent', async () => {
       prisma.category.findUnique.mockResolvedValue({ id: mockCategory.id });
 
