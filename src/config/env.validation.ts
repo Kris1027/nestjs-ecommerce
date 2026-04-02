@@ -1,4 +1,14 @@
+import { existsSync } from 'fs';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 import { z } from 'zod';
+
+// Load environment-specific .env file (e.g. .env.development, .env.production)
+// Falls back to .env.development for test/unknown environments
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+const envFile = resolve(process.cwd(), `.env.${nodeEnv}`);
+const fallback = resolve(process.cwd(), '.env.development');
+config({ path: existsSync(envFile) ? envFile : fallback });
 
 const envSchema = z
   .object({
