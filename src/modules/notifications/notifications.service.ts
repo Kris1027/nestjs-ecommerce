@@ -179,11 +179,54 @@ export class NotificationsService {
     });
   }
 
+  // Mark a single notification as unread (ownership enforced)
+  async markAsUnread(userId: string, notificationId: string): Promise<NotificationResponse> {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { id: true, userId: true },
+    });
+
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: false },
+      select: notificationSelect,
+    });
+  }
+
   // Mark all notifications as read for a user
   async markAllAsRead(userId: string): Promise<{ count: number }> {
     const result = await this.prisma.notification.updateMany({
       where: { userId, isRead: false },
       data: { isRead: true },
+    });
+
+    return { count: result.count };
+  }
+
+  // Delete a single notification (ownership enforced)
+  async deleteOne(userId: string, notificationId: string): Promise<void> {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { id: true, userId: true },
+    });
+
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    await this.prisma.notification.delete({
+      where: { id: notificationId },
+    });
+  }
+
+  // Delete all read notifications for a user
+  async deleteAllRead(userId: string): Promise<{ count: number }> {
+    const result = await this.prisma.notification.deleteMany({
+      where: { userId, isRead: true },
     });
 
     return { count: result.count };

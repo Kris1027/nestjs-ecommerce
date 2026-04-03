@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser, Roles } from '../../common/decorators';
@@ -88,6 +88,19 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(userId, id);
   }
 
+  // Mark a single notification as unread
+  @Patch(':id/unread')
+  @ApiOperation({ summary: 'Mark a notification as unread' })
+  @ApiParam({ name: 'id', description: 'Notification CUID' })
+  @ApiSuccessResponse(NotificationDto, 200, 'Notification marked as unread')
+  @ApiErrorResponses(401, 404, 429)
+  markAsUnread(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ): ReturnType<NotificationsService['markAsUnread']> {
+    return this.notificationsService.markAsUnread(userId, id);
+  }
+
   // Mark all my notifications as read
   @Patch('read-all')
   @ApiOperation({ summary: 'Mark all notifications as read' })
@@ -97,6 +110,26 @@ export class NotificationsController {
     @CurrentUser('sub') userId: string,
   ): ReturnType<NotificationsService['markAllAsRead']> {
     return this.notificationsService.markAllAsRead(userId);
+  }
+
+  // Delete all read notifications
+  @Delete('read')
+  @ApiOperation({ summary: 'Delete all read notifications' })
+  @ApiSuccessResponse(CountResponseDto, 200, 'Number of notifications deleted')
+  @ApiErrorResponses(401, 429)
+  deleteAllRead(
+    @CurrentUser('sub') userId: string,
+  ): ReturnType<NotificationsService['deleteAllRead']> {
+    return this.notificationsService.deleteAllRead(userId);
+  }
+
+  // Delete a single notification
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a notification' })
+  @ApiParam({ name: 'id', description: 'Notification CUID' })
+  @ApiErrorResponses(401, 404, 429)
+  async deleteOne(@CurrentUser('sub') userId: string, @Param('id') id: string): Promise<void> {
+    return this.notificationsService.deleteOne(userId, id);
   }
 
   // Get my notification preferences
