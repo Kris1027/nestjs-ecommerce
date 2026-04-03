@@ -216,7 +216,7 @@ describe('ProductsService', () => {
       expect(prisma.$queryRaw).not.toHaveBeenCalled();
     });
 
-    it('should use full-text search for queries with 3+ characters', async () => {
+    it('should fall back to LIKE search when full-text returns no results for 3+ character queries', async () => {
       prisma.$queryRaw.mockResolvedValue([]);
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);
@@ -290,7 +290,7 @@ describe('ProductsService', () => {
       expect(result.meta.total).toBe(0);
     });
 
-    it('should cache full-text search results', async () => {
+    it('should cache search results after LIKE fallback', async () => {
       prisma.$queryRaw.mockResolvedValue([]);
       prisma.product.findMany.mockResolvedValue([]);
       prisma.product.count.mockResolvedValue(0);

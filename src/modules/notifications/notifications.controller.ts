@@ -127,6 +127,7 @@ export class NotificationsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a notification' })
   @ApiParam({ name: 'id', description: 'Notification CUID' })
+  @ApiSuccessResponse(NotificationDto, 200, 'Notification deleted')
   @ApiErrorResponses(401, 404, 429)
   async deleteOne(@CurrentUser('sub') userId: string, @Param('id') id: string): Promise<void> {
     return this.notificationsService.deleteOne(userId, id);
