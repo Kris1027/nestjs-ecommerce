@@ -226,6 +226,69 @@ export class ProductsService {
     return { products, total };
   }
 
+  private async findAllWithLike(query: ProductQuery): Promise<PaginatedResult<ProductListItem>> {
+    const { skip, take } = getPrismaPageArgs(query);
+    const search = query.search;
+
+    const where: {
+      isActive?: boolean;
+      categoryId?: string;
+      isFeatured?: boolean;
+      price?: { gte?: number; lte?: number };
+      OR?: {
+        name?: { contains: string; mode: 'insensitive' };
+        description?: { contains: string; mode: 'insensitive' };
+      }[];
+    } = {};
+
+    if (query.isActive !== undefined) {
+      where.isActive = query.isActive;
+    }
+
+    if (query.categoryId) {
+      where.categoryId = query.categoryId;
+    }
+
+    if (query.isFeatured !== undefined) {
+      where.isFeatured = query.isFeatured;
+    }
+
+    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
+      where.price = {};
+      if (query.minPrice !== undefined) {
+        where.price.gte = query.minPrice;
+      }
+      if (query.maxPrice !== undefined) {
+        where.price.lte = query.maxPrice;
+      }
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
+    const sortField = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
+    orderBy[sortField] = sortOrder;
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        select: productListSelect,
+        orderBy,
+        skip,
+        take,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return paginate(products as ProductListItem[], total, query);
+  }
+
   // ============================================
   // PUBLIC METHODS
   // ============================================
@@ -246,69 +309,13 @@ export class ProductsService {
 
     if (useFullTextSearch) {
       const { products, total } = await this.findAllWithSearch(search, normalizedQuery);
-      result = paginate(products, total, normalizedQuery);
+      if (total > 0) {
+        result = paginate(products, total, normalizedQuery);
+      } else {
+        result = await this.findAllWithLike(normalizedQuery);
+      }
     } else {
-      const { skip, take } = getPrismaPageArgs(normalizedQuery);
-
-      // Build where clause with filters
-      const where: {
-        isActive?: boolean;
-        categoryId?: string;
-        isFeatured?: boolean;
-        price?: { gte?: number; lte?: number };
-        OR?: {
-          name?: { contains: string; mode: 'insensitive' };
-          description?: { contains: string; mode: 'insensitive' };
-        }[];
-      } = {};
-
-      if (normalizedQuery.isActive !== undefined) {
-        where.isActive = normalizedQuery.isActive;
-      }
-
-      if (normalizedQuery.categoryId) {
-        where.categoryId = normalizedQuery.categoryId;
-      }
-
-      if (normalizedQuery.isFeatured !== undefined) {
-        where.isFeatured = normalizedQuery.isFeatured;
-      }
-
-      if (normalizedQuery.minPrice !== undefined || normalizedQuery.maxPrice !== undefined) {
-        where.price = {};
-        if (normalizedQuery.minPrice !== undefined) {
-          where.price.gte = normalizedQuery.minPrice;
-        }
-        if (normalizedQuery.maxPrice !== undefined) {
-          where.price.lte = normalizedQuery.maxPrice;
-        }
-      }
-
-      if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-        ];
-      }
-
-      // Build orderBy
-      const orderBy: Record<string, 'asc' | 'desc'> = {};
-      const sortField = normalizedQuery.sortBy || 'createdAt';
-      const sortOrder = normalizedQuery.sortOrder || 'desc';
-      orderBy[sortField] = sortOrder;
-
-      const [products, total] = await Promise.all([
-        this.prisma.product.findMany({
-          where,
-          select: productListSelect,
-          orderBy,
-          skip,
-          take,
-        }),
-        this.prisma.product.count({ where }),
-      ]);
-
-      result = paginate(products as ProductListItem[], total, normalizedQuery);
+      result = await this.findAllWithLike(normalizedQuery);
     }
 
     await this.cacheService.set(cacheKey, result, CACHE_TTL.PRODUCTS_LIST);
