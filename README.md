@@ -51,7 +51,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 ### Product Catalog
 
 - **Categories** — hierarchical tree structure with parent/child relationships, auto-generated slugs, image uploads, soft delete
-- **Products** — full CRUD with filtering (category, price range, featured), case-insensitive search, dynamic sorting, pagination, Cloudinary image uploads with auto-optimization
+- **Products** — full CRUD with filtering (category, price range, featured), full-text search with LIKE fallback, dynamic sorting, pagination, Cloudinary image uploads with auto-optimization
 
 ### Inventory Management
 
@@ -123,7 +123,8 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 - **Dual-channel delivery** — in-app (database) + email (Resend)
 - **15 email templates** — welcome, order lifecycle, payment confirmations, refund updates, low stock alerts
 - **Event-driven architecture** — 13 event types with 5 dedicated listeners (auth, orders, payments, inventory, cache invalidation)
-- Unread count badge, mark as read (single/all), notification preferences (opt-out model)
+- Unread count badge, mark as read (single/all), mark as unread, notification preferences (opt-out model)
+- Delete individual notifications and bulk delete all read notifications
 - Admin broadcast for low stock alerts (sent to all active admins)
 - Idempotency check (prevents duplicate notifications within 1 minute)
 - Async email delivery via BullMQ with retry and exponential backoff
