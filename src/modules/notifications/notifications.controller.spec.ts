@@ -110,6 +110,29 @@ describe('NotificationsController', () => {
     });
   });
 
+  describe('deleteOne', () => {
+    it('should call notificationsService.deleteOne with userId and id', async () => {
+      const notifId = 'notif1';
+      service.deleteOne.mockResolvedValue(undefined);
+
+      await controller.deleteOne(userId, notifId);
+
+      expect(service.deleteOne).toHaveBeenCalledWith(userId, notifId);
+    });
+  });
+
+  describe('deleteAllRead', () => {
+    it('should call notificationsService.deleteAllRead with userId', async () => {
+      const expected = { count: 5 };
+      service.deleteAllRead.mockResolvedValue(expected);
+
+      const result = await controller.deleteAllRead(userId);
+
+      expect(service.deleteAllRead).toHaveBeenCalledWith(userId);
+      expect(result).toEqual(expected);
+    });
+  });
+
   describe('getPreferences', () => {
     it('should call notificationsService.getPreferences with userId', async () => {
       const expected = [{ type: 'ORDER_CREATED', channel: 'EMAIL', enabled: true }];
