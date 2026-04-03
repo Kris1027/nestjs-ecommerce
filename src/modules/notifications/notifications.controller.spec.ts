@@ -8,7 +8,10 @@ function createMockNotificationsService(): Record<keyof NotificationsService, je
     findUserNotifications: jest.fn(),
     getUnreadCount: jest.fn(),
     markAsRead: jest.fn(),
+    markAsUnread: jest.fn(),
     markAllAsRead: jest.fn(),
+    deleteOne: jest.fn(),
+    deleteAllRead: jest.fn(),
     getPreferences: jest.fn(),
     updatePreference: jest.fn(),
     findAll: jest.fn(),
@@ -78,6 +81,19 @@ describe('NotificationsController', () => {
       const result = await controller.markAsRead(userId, notifId);
 
       expect(service.markAsRead).toHaveBeenCalledWith(userId, notifId);
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('markAsUnread', () => {
+    it('should call notificationsService.markAsUnread with userId and id', async () => {
+      const notifId = 'notif1';
+      const expected = { id: notifId, isRead: false };
+      service.markAsUnread.mockResolvedValue(expected);
+
+      const result = await controller.markAsUnread(userId, notifId);
+
+      expect(service.markAsUnread).toHaveBeenCalledWith(userId, notifId);
       expect(result).toEqual(expected);
     });
   });
