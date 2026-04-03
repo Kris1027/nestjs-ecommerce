@@ -1,4 +1,10 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
+
+const root = resolve(__dirname, '../..');
+const envFile = existsSync(resolve(root, '.env')) ? '.env' : '.env.development';
+config({ path: resolve(root, envFile) });
 import { execSync } from 'child_process';
 import pg from 'pg';
 
