@@ -218,6 +218,8 @@ describe('ProductsService', () => {
 
     it('should use full-text search for queries with 3+ characters', async () => {
       prisma.$queryRaw.mockResolvedValue([]);
+      prisma.product.findMany.mockResolvedValue([]);
+      prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({
         page: 1,
@@ -228,7 +230,8 @@ describe('ProductsService', () => {
       });
 
       expect(prisma.$queryRaw).toHaveBeenCalled();
-      expect(prisma.product.findMany).not.toHaveBeenCalled();
+      // Falls back to LIKE search when full-text returns no results
+      expect(prisma.product.findMany).toHaveBeenCalled();
     });
 
     it('should return paginated results from full-text search', async () => {
@@ -272,6 +275,8 @@ describe('ProductsService', () => {
 
     it('should return empty results from full-text search with no matches', async () => {
       prisma.$queryRaw.mockResolvedValue([]);
+      prisma.product.findMany.mockResolvedValue([]);
+      prisma.product.count.mockResolvedValue(0);
 
       const result = await service.findAll({
         page: 1,
@@ -287,6 +292,8 @@ describe('ProductsService', () => {
 
     it('should cache full-text search results', async () => {
       prisma.$queryRaw.mockResolvedValue([]);
+      prisma.product.findMany.mockResolvedValue([]);
+      prisma.product.count.mockResolvedValue(0);
 
       await service.findAll({
         page: 1,
