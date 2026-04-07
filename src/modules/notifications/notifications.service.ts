@@ -77,9 +77,10 @@ export class NotificationsService {
     const { userId, type, referenceId, title, body, email } = params;
 
     // 1. Best-effort idempotency check — prevent duplicate notifications for same event
-    // Same type + referenceId within 1 minute = duplicate (covers both in-app and email)
-    // Note: not fully race-proof without a DB-level unique constraint, but sufficient
-    // for notification dedup where a rare duplicate is acceptable
+    // Same type + referenceId within 1 minute = duplicate
+    // Relies on a prior in-app notification row existing — if a user disables in-app
+    // but keeps email enabled, this check won't match and email-only duplicates are possible.
+    // Acceptable trade-off: that preference combo is rare, and a duplicate email is harmless.
     if (referenceId) {
       const oneMinuteAgo = new Date(Date.now() - 60_000);
       const existing = await this.prisma.notification.findFirst({
@@ -360,14 +361,6 @@ export class NotificationsService {
     }
   }
 
-  // ============================================
-  // PRIVATE HELPERS
-  // ============================================
-
-  private isPrismaNotFound(error: unknown): boolean {
-    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
-  }
-
   // Admin mark all notifications as read across all users
   async adminMarkAllAsRead(): Promise<{ count: number }> {
     const result = await this.prisma.notification.updateMany({
@@ -385,5 +378,13 @@ export class NotificationsService {
     });
 
     return { count: result.count };
+  }
+
+  // ============================================
+  // PRIVATE HELPERS
+  // ============================================
+
+  private isPrismaNotFound(error: unknown): boolean {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
   }
 }
