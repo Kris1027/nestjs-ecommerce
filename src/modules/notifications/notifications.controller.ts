@@ -209,6 +209,16 @@ export class NotificationsController {
     return this.notificationsService.findAll(query);
   }
 
+  // Admin mark all notifications as read across all users
+  @Patch('admin/read-all')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Mark all notifications as read across all users (admin)' })
+  @ApiSuccessResponse(CountResponseDto, 200, 'Number of notifications marked as read')
+  @ApiErrorResponses(401, 403, 429)
+  adminMarkAllAsRead(): ReturnType<NotificationsService['adminMarkAllAsRead']> {
+    return this.notificationsService.adminMarkAllAsRead();
+  }
+
   // Admin mark any notification as read (no ownership check)
   @Patch('admin/:id/read')
   @Roles('ADMIN')

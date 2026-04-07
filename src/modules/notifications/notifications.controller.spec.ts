@@ -15,6 +15,7 @@ function createMockNotificationsService(): Record<keyof NotificationsService, je
     getPreferences: jest.fn(),
     updatePreference: jest.fn(),
     findAll: jest.fn(),
+    adminMarkAllAsRead: jest.fn(),
     adminMarkAsRead: jest.fn(),
     adminMarkAsUnread: jest.fn(),
     adminDeleteOne: jest.fn(),
@@ -175,6 +176,18 @@ describe('NotificationsController', () => {
       const result = await controller.findAll(query as any);
 
       expect(service.findAll).toHaveBeenCalledWith(query);
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('adminMarkAllAsRead', () => {
+    it('should call notificationsService.adminMarkAllAsRead', async () => {
+      const expected = { count: 15 };
+      service.adminMarkAllAsRead.mockResolvedValue(expected);
+
+      const result = await controller.adminMarkAllAsRead();
+
+      expect(service.adminMarkAllAsRead).toHaveBeenCalled();
       expect(result).toEqual(expected);
     });
   });

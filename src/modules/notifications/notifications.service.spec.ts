@@ -465,6 +465,28 @@ describe('NotificationsService', () => {
     });
   });
 
+  describe('adminMarkAllAsRead', () => {
+    it('should mark all unread notifications as read across all users', async () => {
+      prisma.notification.updateMany.mockResolvedValue({ count: 15 });
+
+      const result = await service.adminMarkAllAsRead();
+
+      expect(result).toEqual({ count: 15 });
+      expect(prisma.notification.updateMany).toHaveBeenCalledWith({
+        where: { isRead: false },
+        data: { isRead: true },
+      });
+    });
+
+    it('should return zero when no unread notifications exist', async () => {
+      prisma.notification.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await service.adminMarkAllAsRead();
+
+      expect(result).toEqual({ count: 0 });
+    });
+  });
+
   describe('adminDeleteAllRead', () => {
     it('should delete all read notifications across all users', async () => {
       prisma.notification.deleteMany.mockResolvedValue({ count: 10 });
