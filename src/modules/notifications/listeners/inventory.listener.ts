@@ -32,8 +32,8 @@ export class InventoryListener {
         return;
       }
 
-      // 2. Create in-app notification for each admin (concurrent for performance)
-      await Promise.all(
+      // 2. Create in-app notification for each admin — allSettled so one failure doesn't block others
+      await Promise.allSettled(
         admins.map((admin) =>
           this.notificationsService.notify({
             userId: admin.id,
@@ -41,7 +41,6 @@ export class InventoryListener {
             title: 'Low stock alert',
             body: `${event.productName}: ${event.currentStock} units left (threshold: ${event.threshold}).`,
             referenceId: event.productId,
-            // No email here — we send batch email below
           }),
         ),
       );
