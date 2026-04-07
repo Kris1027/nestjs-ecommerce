@@ -7,6 +7,7 @@ import { OrderListener } from './listeners/order.listener';
 import { PaymentListener } from './listeners/payment.listener';
 import { InventoryListener } from './listeners/inventory.listener';
 import { AuthListener } from './listeners/auth.listener';
+import { ReviewListener } from './listeners/review.listener';
 import { QueueModule } from '../queue/queue.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { QueueModule } from '../queue/queue.module';
     PaymentListener,
     InventoryListener,
     AuthListener,
+    ReviewListener,
   ],
   // Export services so other modules can inject EventEmitter2 and emit events
   exports: [NotificationsService, EmailService],
