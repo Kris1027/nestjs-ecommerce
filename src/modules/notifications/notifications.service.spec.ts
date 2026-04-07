@@ -374,4 +374,112 @@ describe('NotificationsService', () => {
       );
     });
   });
+
+  // ============================================
+  // ADMIN METHODS
+  // ============================================
+
+  describe('adminMarkAsRead', () => {
+    it('should mark any notification as read without ownership check', async () => {
+      prisma.notification.findUnique.mockResolvedValue({ id: notificationId });
+      const updated = {
+        id: notificationId,
+        userId,
+        type: 'ORDER_CREATED',
+        title: 'Test',
+        body: 'Test',
+        referenceId: null,
+        isRead: true,
+        createdAt: new Date(),
+      };
+      prisma.notification.update.mockResolvedValue(updated);
+
+      const result = await service.adminMarkAsRead(notificationId);
+
+      expect(result).toEqual(updated);
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: notificationId },
+        data: { isRead: true },
+        select: expect.objectContaining({ userId: true }),
+      });
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      prisma.notification.findUnique.mockResolvedValue(null);
+
+      await expect(service.adminMarkAsRead('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('adminMarkAsUnread', () => {
+    it('should mark any notification as unread without ownership check', async () => {
+      prisma.notification.findUnique.mockResolvedValue({ id: notificationId });
+      const updated = {
+        id: notificationId,
+        userId,
+        type: 'ORDER_CREATED',
+        title: 'Test',
+        body: 'Test',
+        referenceId: null,
+        isRead: false,
+        createdAt: new Date(),
+      };
+      prisma.notification.update.mockResolvedValue(updated);
+
+      const result = await service.adminMarkAsUnread(notificationId);
+
+      expect(result).toEqual(updated);
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: notificationId },
+        data: { isRead: false },
+        select: expect.objectContaining({ userId: true }),
+      });
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      prisma.notification.findUnique.mockResolvedValue(null);
+
+      await expect(service.adminMarkAsUnread('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('adminDeleteOne', () => {
+    it('should delete any notification without ownership check', async () => {
+      prisma.notification.findUnique.mockResolvedValue({ id: notificationId });
+      prisma.notification.delete.mockResolvedValue({});
+
+      await service.adminDeleteOne(notificationId);
+
+      expect(prisma.notification.delete).toHaveBeenCalledWith({
+        where: { id: notificationId },
+      });
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      prisma.notification.findUnique.mockResolvedValue(null);
+
+      await expect(service.adminDeleteOne('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('adminDeleteAllRead', () => {
+    it('should delete all read notifications across all users', async () => {
+      prisma.notification.deleteMany.mockResolvedValue({ count: 10 });
+
+      const result = await service.adminDeleteAllRead();
+
+      expect(result).toEqual({ count: 10 });
+      expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
+        where: { isRead: true },
+      });
+    });
+
+    it('should return zero when no read notifications exist', async () => {
+      prisma.notification.deleteMany.mockResolvedValue({ count: 0 });
+
+      const result = await service.adminDeleteAllRead();
+
+      expect(result).toEqual({ count: 0 });
+    });
+  });
 });

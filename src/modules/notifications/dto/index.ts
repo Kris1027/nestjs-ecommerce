@@ -2,6 +2,7 @@ export { NotificationQueryDto, type NotificationQuery } from './notification-que
 export { UpdatePreferenceDto } from './update-preference.dto';
 export {
   NotificationDto,
+  AdminNotificationDto,
   NotificationPreferenceDto,
   CountResponseDto,
 } from './notification-response.dto';

@@ -15,6 +15,10 @@ function createMockNotificationsService(): Record<keyof NotificationsService, je
     getPreferences: jest.fn(),
     updatePreference: jest.fn(),
     findAll: jest.fn(),
+    adminMarkAsRead: jest.fn(),
+    adminMarkAsUnread: jest.fn(),
+    adminDeleteOne: jest.fn(),
+    adminDeleteAllRead: jest.fn(),
   };
 }
 
@@ -171,6 +175,55 @@ describe('NotificationsController', () => {
       const result = await controller.findAll(query as any);
 
       expect(service.findAll).toHaveBeenCalledWith(query);
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('adminMarkAsRead', () => {
+    it('should call notificationsService.adminMarkAsRead with id', async () => {
+      const notifId = 'notif1';
+      const expected = { id: notifId, isRead: true, userId: 'user1' };
+      service.adminMarkAsRead.mockResolvedValue(expected);
+
+      const result = await controller.adminMarkAsRead(notifId);
+
+      expect(service.adminMarkAsRead).toHaveBeenCalledWith(notifId);
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('adminMarkAsUnread', () => {
+    it('should call notificationsService.adminMarkAsUnread with id', async () => {
+      const notifId = 'notif1';
+      const expected = { id: notifId, isRead: false, userId: 'user1' };
+      service.adminMarkAsUnread.mockResolvedValue(expected);
+
+      const result = await controller.adminMarkAsUnread(notifId);
+
+      expect(service.adminMarkAsUnread).toHaveBeenCalledWith(notifId);
+      expect(result).toEqual(expected);
+    });
+  });
+
+  describe('adminDeleteOne', () => {
+    it('should call notificationsService.adminDeleteOne with id', async () => {
+      const notifId = 'notif1';
+      service.adminDeleteOne.mockResolvedValue(undefined);
+
+      await controller.adminDeleteOne(notifId);
+
+      expect(service.adminDeleteOne).toHaveBeenCalledWith(notifId);
+    });
+  });
+
+  describe('adminDeleteAllRead', () => {
+    it('should call notificationsService.adminDeleteAllRead', async () => {
+      const expected = { count: 10 };
+      service.adminDeleteAllRead.mockResolvedValue(expected);
+
+      const result = await controller.adminDeleteAllRead();
+
+      expect(service.adminDeleteAllRead).toHaveBeenCalled();
       expect(result).toEqual(expected);
     });
   });
