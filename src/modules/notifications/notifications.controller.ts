@@ -1,5 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Patch, Put, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Put, Query } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser, Roles } from '../../common/decorators';
 import {
@@ -128,9 +135,10 @@ export class NotificationsController {
 
   // Delete a single notification
   @Delete(':id')
+  @HttpCode(204)
   @ApiOperation({ summary: 'Delete a notification' })
   @ApiParam({ name: 'id', description: 'Notification CUID' })
-  @ApiSuccessResponse(NotificationDto, 200, 'Notification deleted')
+  @ApiNoContentResponse({ description: 'Notification deleted' })
   @ApiErrorResponses(401, 404, 429)
   async deleteOne(@CurrentUser('sub') userId: string, @Param('id') id: string): Promise<void> {
     return this.notificationsService.deleteOne(userId, id);
@@ -238,10 +246,11 @@ export class NotificationsController {
 
   // Admin delete any notification (no ownership check)
   @Delete('admin/:id')
+  @HttpCode(204)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Delete any notification (admin)' })
   @ApiParam({ name: 'id', description: 'Notification CUID' })
-  @ApiSuccessResponse(AdminNotificationDto, 200, 'Notification deleted')
+  @ApiNoContentResponse({ description: 'Notification deleted' })
   @ApiErrorResponses(401, 403, 404, 429)
   adminDeleteOne(@Param('id') id: string): Promise<void> {
     return this.notificationsService.adminDeleteOne(id);
