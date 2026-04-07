@@ -232,18 +232,17 @@ export type StockMovementGroupByOutputType = {
   _max: StockMovementMaxAggregateOutputType | null;
 };
 
-export type GetStockMovementGroupByPayload<T extends StockMovementGroupByArgs> =
-  Prisma.PrismaPromise<
-    Array<
-      Prisma.PickEnumerable<StockMovementGroupByOutputType, T['by']> & {
-        [P in keyof T & keyof StockMovementGroupByOutputType]: P extends '_count'
-          ? T[P] extends boolean
-            ? number
-            : Prisma.GetScalarType<T[P], StockMovementGroupByOutputType[P]>
-          : Prisma.GetScalarType<T[P], StockMovementGroupByOutputType[P]>;
-      }
-    >
-  >;
+type GetStockMovementGroupByPayload<T extends StockMovementGroupByArgs> = Prisma.PrismaPromise<
+  Array<
+    Prisma.PickEnumerable<StockMovementGroupByOutputType, T['by']> & {
+      [P in keyof T & keyof StockMovementGroupByOutputType]: P extends '_count'
+        ? T[P] extends boolean
+          ? number
+          : Prisma.GetScalarType<T[P], StockMovementGroupByOutputType[P]>
+        : Prisma.GetScalarType<T[P], StockMovementGroupByOutputType[P]>;
+    }
+  >
+>;
 
 export type StockMovementWhereInput = {
   AND?: Prisma.StockMovementWhereInput | Prisma.StockMovementWhereInput[];
@@ -1602,11 +1601,6 @@ export type StockMovementFindManyArgs<
    * Skip the first `n` StockMovements.
    */
   skip?: number;
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-   *
-   * Filter by unique combinations of StockMovements.
-   */
   distinct?: Prisma.StockMovementScalarFieldEnum | Prisma.StockMovementScalarFieldEnum[];
 };
 
