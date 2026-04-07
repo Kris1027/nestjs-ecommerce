@@ -592,6 +592,7 @@ enum NotificationType {
         REFUND_COMPLETED // Refund confirmed by Stripe
         REFUND_FAILED // Refund failed
         REFUND_REQUEST_CREATED // Customer request a refund
+        REVIEW_CREATED // New review submitted (admin moderation alert)
         LOW_STOCK // Product below threshold (admin only)
         WELCOME // New user registration
         PASSWORD_CHANGED // Password updated

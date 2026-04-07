@@ -293,6 +293,34 @@ export function lowStockEmail(
 }
 
 // ============================================
+// REVIEW TEMPLATES (admin only)
+// ============================================
+
+export function reviewCreatedAdminEmail(
+  reviewerName: string,
+  productName: string,
+  rating: number,
+  title: string,
+): { subject: string; html: string } {
+  const safeName = escapeHtml(reviewerName);
+  const safeProduct = escapeHtml(productName);
+  const safeTitle = escapeHtml(title);
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  return {
+    subject: `New review pending moderation: ${safeProduct}`,
+    html: wrapHtml(
+      'New Review Submitted',
+      `<p>A new review has been submitted and needs moderation.</p>
+       <p><strong>Product:</strong> ${safeProduct}</p>
+       <p><strong>Reviewer:</strong> ${safeName}</p>
+       <p><strong>Rating:</strong> ${stars} (${rating}/5)</p>
+       <p><strong>Title:</strong> ${safeTitle}</p>
+       <p>Please review and approve or reject in the admin dashboard.</p>`,
+    ),
+  };
+}
+
+// ============================================
 // REFUND REQUEST TEMPLATES
 // ============================================
 

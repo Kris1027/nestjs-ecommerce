@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma, ReviewStatus, OrderStatus } from '../../generated/prisma/client';
 import {
@@ -10,6 +11,7 @@ import type { CreateReviewDto } from './dto/create-review.dto';
 import type { UpdateReviewDto } from './dto/update-review.dto';
 import type { AdminUpdateReviewDto } from './dto/admin-update-review.dto';
 import type { ReviewQuery } from './dto';
+import { NotificationEvents, ReviewCreatedEvent } from '../notifications/events';
 
 // ============================================
 // SELECT OBJECT & TYPE
@@ -56,7 +58,10 @@ const PURCHASED_STATUSES: OrderStatus[] = [
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================
   // CUSTOMER METHODS
@@ -118,6 +123,27 @@ export class ReviewsService {
     // 5. Recalculate product rating (only APPROVED reviews are included;
     //    this new PENDING review won't affect the average until approved)
     await this.recalculateRating(productId);
+
+    // 6. Emit event so admins get notified for moderation
+    const reviewer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
+
+    if (reviewer) {
+      this.eventEmitter.emit(
+        NotificationEvents.REVIEW_CREATED,
+        new ReviewCreatedEvent(
+          userId,
+          reviewer.email,
+          reviewer.firstName,
+          review.id,
+          review.product.name,
+          review.rating,
+          review.title ?? '',
+        ),
+      );
+    }
 
     return review;
   }

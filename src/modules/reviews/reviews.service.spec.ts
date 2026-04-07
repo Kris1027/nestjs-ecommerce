@@ -1,18 +1,26 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ReviewsService } from './reviews.service';
 import { createMockPrismaClient, resetMockPrismaClient } from '@test/mocks/prisma.mock';
+import { createMockEventEmitter } from '@test/mocks/common.mock';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('ReviewsService', () => {
   let service: ReviewsService;
   let prisma: ReturnType<typeof createMockPrismaClient>;
+  let eventEmitter: ReturnType<typeof createMockEventEmitter>;
 
   beforeEach(async () => {
     prisma = createMockPrismaClient();
+    eventEmitter = createMockEventEmitter();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ReviewsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        ReviewsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: EventEmitter2, useValue: eventEmitter },
+      ],
     }).compile();
 
     service = module.get<ReviewsService>(ReviewsService);
@@ -64,6 +72,7 @@ describe('ReviewsService', () => {
       prisma.orderItem.findFirst.mockResolvedValue({ id: 'order-item-1' });
       prisma.review.findUnique.mockResolvedValue(null);
       prisma.review.create.mockResolvedValue(mockReview);
+      prisma.user.findUnique.mockResolvedValue({ email: 'john@example.com', firstName: 'John' });
       setupRecalculateMocks(4.5, 10);
 
       const result = await service.create(userId, productId, createDto as never);
@@ -87,6 +96,16 @@ describe('ReviewsService', () => {
         where: { id: productId },
         data: { averageRating: 4.5, reviewCount: 10 },
       });
+      // Verify review.created event emitted for admin notification
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'review.created',
+        expect.objectContaining({
+          userId,
+          reviewId: reviewId,
+          productName: 'Test Product',
+          rating: 5,
+        }),
+      );
     });
 
     it('should throw NotFoundException when product does not exist', async () => {
