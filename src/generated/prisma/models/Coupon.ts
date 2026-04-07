@@ -281,7 +281,7 @@ export type CouponGroupByOutputType = {
   _max: CouponMaxAggregateOutputType | null;
 };
 
-export type GetCouponGroupByPayload<T extends CouponGroupByArgs> = Prisma.PrismaPromise<
+type GetCouponGroupByPayload<T extends CouponGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<CouponGroupByOutputType, T['by']> & {
       [P in keyof T & keyof CouponGroupByOutputType]: P extends '_count'
@@ -1854,11 +1854,6 @@ export type CouponFindManyArgs<
    * Skip the first `n` Coupons.
    */
   skip?: number;
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-   *
-   * Filter by unique combinations of Coupons.
-   */
   distinct?: Prisma.CouponScalarFieldEnum | Prisma.CouponScalarFieldEnum[];
 };
 
