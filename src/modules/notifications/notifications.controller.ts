@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestj
 import { NotificationsService } from './notifications.service';
 import { CurrentUser, Roles } from '../../common/decorators';
 import {
+  AdminNotificationDto,
   CountResponseDto,
   NotificationDto,
   NotificationPreferenceDto,
@@ -49,6 +50,7 @@ export class NotificationsController {
       'REFUND_INITIATED',
       'REFUND_COMPLETED',
       'REFUND_FAILED',
+      'REFUND_REQUEST_CREATED',
       'LOW_STOCK',
       'WELCOME',
       'PASSWORD_CHANGED',
@@ -184,15 +186,62 @@ export class NotificationsController {
       'REFUND_INITIATED',
       'REFUND_COMPLETED',
       'REFUND_FAILED',
+      'REFUND_REQUEST_CREATED',
       'LOW_STOCK',
       'WELCOME',
       'PASSWORD_CHANGED',
     ],
     description: 'Filter by notification type',
   })
-  @ApiPaginatedResponse(NotificationDto, 'Paginated notification list')
+  @ApiPaginatedResponse(AdminNotificationDto, 'Paginated notification list with userId')
   @ApiErrorResponses(401, 403, 429)
   findAll(@Query() query: NotificationQueryDto): ReturnType<NotificationsService['findAll']> {
     return this.notificationsService.findAll(query);
+  }
+
+  // Admin mark any notification as read (no ownership check)
+  @Patch('admin/:id/read')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Mark any notification as read (admin)' })
+  @ApiParam({ name: 'id', description: 'Notification CUID' })
+  @ApiSuccessResponse(AdminNotificationDto, 200, 'Notification marked as read')
+  @ApiErrorResponses(401, 403, 404, 429)
+  adminMarkAsRead(@Param('id') id: string): ReturnType<NotificationsService['adminMarkAsRead']> {
+    return this.notificationsService.adminMarkAsRead(id);
+  }
+
+  // Admin mark any notification as unread (no ownership check)
+  @Patch('admin/:id/unread')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Mark any notification as unread (admin)' })
+  @ApiParam({ name: 'id', description: 'Notification CUID' })
+  @ApiSuccessResponse(AdminNotificationDto, 200, 'Notification marked as unread')
+  @ApiErrorResponses(401, 403, 404, 429)
+  adminMarkAsUnread(
+    @Param('id') id: string,
+  ): ReturnType<NotificationsService['adminMarkAsUnread']> {
+    return this.notificationsService.adminMarkAsUnread(id);
+  }
+
+  // Admin delete all read notifications across all users
+  // Must be declared before admin/:id to avoid route collision
+  @Delete('admin/read')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Delete all read notifications across all users (admin)' })
+  @ApiSuccessResponse(CountResponseDto, 200, 'Number of notifications deleted')
+  @ApiErrorResponses(401, 403, 429)
+  adminDeleteAllRead(): ReturnType<NotificationsService['adminDeleteAllRead']> {
+    return this.notificationsService.adminDeleteAllRead();
+  }
+
+  // Admin delete any notification (no ownership check)
+  @Delete('admin/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Delete any notification (admin)' })
+  @ApiParam({ name: 'id', description: 'Notification CUID' })
+  @ApiSuccessResponse(AdminNotificationDto, 200, 'Notification deleted')
+  @ApiErrorResponses(401, 403, 404, 429)
+  adminDeleteOne(@Param('id') id: string): Promise<void> {
+    return this.notificationsService.adminDeleteOne(id);
   }
 }

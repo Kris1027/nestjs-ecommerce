@@ -24,9 +24,19 @@ const notificationSelect = {
   createdAt: true,
 } as const;
 
+// Admin view includes userId so dashboard can identify notification owners
+const adminNotificationSelect = {
+  ...notificationSelect,
+  userId: true,
+} as const;
+
 // Auto-generate TypeScript type from Prisma select — stays in sync with DB
 type NotificationResponse = Prisma.NotificationGetPayload<{
   select: typeof notificationSelect;
+}>;
+
+type AdminNotificationResponse = Prisma.NotificationGetPayload<{
+  select: typeof adminNotificationSelect;
 }>;
 
 // Preference shape returned to clients
@@ -273,7 +283,7 @@ export class NotificationsService {
   // ============================================
 
   // List all notifications across all users (admin dashboard)
-  async findAll(query: NotificationQueryDto): Promise<PaginatedResult<NotificationResponse>> {
+  async findAll(query: NotificationQueryDto): Promise<PaginatedResult<AdminNotificationResponse>> {
     const { skip, take } = getPrismaPageArgs(query);
 
     // Build dynamic where clause — same filters as customer but no userId restriction
@@ -290,7 +300,7 @@ export class NotificationsService {
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
         where,
-        select: notificationSelect,
+        select: adminNotificationSelect,
         orderBy: { createdAt: 'desc' },
         skip,
         take,
@@ -299,5 +309,66 @@ export class NotificationsService {
     ]);
 
     return paginate(notifications, total, query);
+  }
+
+  // Admin mark any notification as read (no ownership check)
+  async adminMarkAsRead(notificationId: string): Promise<AdminNotificationResponse> {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { id: true },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+      select: adminNotificationSelect,
+    });
+  }
+
+  // Admin mark any notification as unread (no ownership check)
+  async adminMarkAsUnread(notificationId: string): Promise<AdminNotificationResponse> {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { id: true },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: false },
+      select: adminNotificationSelect,
+    });
+  }
+
+  // Admin delete any notification (no ownership check)
+  async adminDeleteOne(notificationId: string): Promise<void> {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+      select: { id: true },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    await this.prisma.notification.delete({
+      where: { id: notificationId },
+    });
+  }
+
+  // Admin delete all read notifications across all users
+  async adminDeleteAllRead(): Promise<{ count: number }> {
+    const result = await this.prisma.notification.deleteMany({
+      where: { isRead: true },
+    });
+
+    return { count: result.count };
   }
 }

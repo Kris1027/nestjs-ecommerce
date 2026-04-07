@@ -18,6 +18,7 @@ export class NotificationDto {
       'REFUND_INITIATED',
       'REFUND_COMPLETED',
       'REFUND_FAILED',
+      'REFUND_REQUEST_CREATED',
       'LOW_STOCK',
       'WELCOME',
       'PASSWORD_CHANGED',
@@ -48,6 +49,12 @@ export class NotificationDto {
   createdAt: Date;
 }
 
+// Admin view includes userId to identify notification owner
+export class AdminNotificationDto extends NotificationDto {
+  @ApiProperty({ description: 'User who owns this notification', example: 'clxyz456def789' })
+  userId: string;
+}
+
 // Mirrors preferenceSelect from notifications.service.ts
 export class NotificationPreferenceDto {
   @ApiProperty({ description: 'Unique preference CUID', example: 'clxyz456ghi789' })
@@ -66,6 +73,7 @@ export class NotificationPreferenceDto {
       'REFUND_INITIATED',
       'REFUND_COMPLETED',
       'REFUND_FAILED',
+      'REFUND_REQUEST_CREATED',
       'LOW_STOCK',
       'WELCOME',
       'PASSWORD_CHANGED',
