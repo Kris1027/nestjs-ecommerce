@@ -368,6 +368,16 @@ export class NotificationsService {
     return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
   }
 
+  // Admin mark all notifications as read across all users
+  async adminMarkAllAsRead(): Promise<{ count: number }> {
+    const result = await this.prisma.notification.updateMany({
+      where: { isRead: false },
+      data: { isRead: true },
+    });
+
+    return { count: result.count };
+  }
+
   // Admin delete all read notifications across all users
   async adminDeleteAllRead(): Promise<{ count: number }> {
     const result = await this.prisma.notification.deleteMany({

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml)
 
-A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.7, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 91 fully documented API endpoints.
+A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.7, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 97 fully documented API endpoints.
 
 ---
 
@@ -19,7 +19,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Caching**        | Redis + cache-manager (Keyv adapter)        |
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
-| **Documentation**  | Swagger/OpenAPI (91 endpoints)              |
+| **Documentation**  | Swagger/OpenAPI (97 endpoints)              |
 | **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 690 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (lint, test, build)           |
@@ -121,13 +121,40 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 ### Notifications
 
 - **Dual-channel delivery** — in-app (database) + email (Resend)
-- **15 email templates** — welcome, order lifecycle, payment confirmations, refund updates, low stock alerts
-- **Event-driven architecture** — 13 event types with 5 dedicated listeners (auth, orders, payments, inventory, cache invalidation)
+- **16 email templates** — welcome, order lifecycle, payment confirmations, refund updates, low stock alerts, review moderation
+- **Event-driven architecture** — 14 event types with 6 dedicated listeners (auth, orders, payments, inventory, reviews, cache invalidation)
+- **15 notification types** — ORDER_CREATED, ORDER_CONFIRMED, ORDER_SHIPPED, ORDER_DELIVERED, ORDER_CANCELLED, PAYMENT_SUCCEEDED, PAYMENT_FAILED, REFUND_INITIATED, REFUND_COMPLETED, REFUND_FAILED, REFUND_REQUEST_CREATED, REVIEW_CREATED, LOW_STOCK, WELCOME, PASSWORD_CHANGED
 - Unread count badge, mark as read (single/all), mark as unread, notification preferences (opt-out model)
 - Delete individual notifications and bulk delete all read notifications
-- Admin broadcast for low stock alerts (sent to all active admins)
+- Admin broadcast for low stock and review moderation alerts (sent to all active admins)
+- Admin notification management — mark read/unread, delete any notification across all users
 - Idempotency check (prevents duplicate notifications within 1 minute)
 - Async email delivery via BullMQ with retry and exponential backoff
+
+#### Customer Endpoints
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/notifications` | List my notifications (paginated, filterable by isRead/type) |
+| GET | `/notifications/unread-count` | Get unread count for UI badge |
+| PATCH | `/notifications/:id/read` | Mark a notification as read |
+| PATCH | `/notifications/:id/unread` | Mark a notification as unread |
+| PATCH | `/notifications/read-all` | Mark all my notifications as read |
+| DELETE | `/notifications/:id` | Delete a notification (204) |
+| DELETE | `/notifications/read` | Delete all read notifications |
+| GET | `/notifications/preferences` | Get my notification preferences |
+| PUT | `/notifications/preferences` | Update a notification preference |
+
+#### Admin Endpoints
+
+| Method | Endpoint | Description |
+| ------ | -------- | ----------- |
+| GET | `/notifications/admin` | List all notifications across all users (includes userId) |
+| PATCH | `/notifications/admin/read-all` | Mark all notifications as read across all users |
+| PATCH | `/notifications/admin/:id/read` | Mark any notification as read |
+| PATCH | `/notifications/admin/:id/unread` | Mark any notification as unread |
+| DELETE | `/notifications/admin/read` | Delete all read notifications across all users |
+| DELETE | `/notifications/admin/:id` | Delete any notification (204) |
 
 ### Background Jobs
 
