@@ -51,6 +51,11 @@ RUN pnpm install --frozen-lockfile
 # not when dependencies change (that's the whole point of copying package.json first)
 COPY . .
 
+# Regenerate Prisma client to match the installed prisma version
+# COPY . . may overwrite the client generated during pnpm install
+# with a stale version from git
+RUN pnpm prisma generate
+
 # Compile TypeScript → JavaScript into /app/dist
 RUN pnpm build
 

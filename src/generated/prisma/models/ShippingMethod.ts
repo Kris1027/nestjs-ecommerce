@@ -239,17 +239,18 @@ export type ShippingMethodGroupByOutputType = {
   _max: ShippingMethodMaxAggregateOutputType | null;
 };
 
-type GetShippingMethodGroupByPayload<T extends ShippingMethodGroupByArgs> = Prisma.PrismaPromise<
-  Array<
-    Prisma.PickEnumerable<ShippingMethodGroupByOutputType, T['by']> & {
-      [P in keyof T & keyof ShippingMethodGroupByOutputType]: P extends '_count'
-        ? T[P] extends boolean
-          ? number
-          : Prisma.GetScalarType<T[P], ShippingMethodGroupByOutputType[P]>
-        : Prisma.GetScalarType<T[P], ShippingMethodGroupByOutputType[P]>;
-    }
-  >
->;
+export type GetShippingMethodGroupByPayload<T extends ShippingMethodGroupByArgs> =
+  Prisma.PrismaPromise<
+    Array<
+      Prisma.PickEnumerable<ShippingMethodGroupByOutputType, T['by']> & {
+        [P in keyof T & keyof ShippingMethodGroupByOutputType]: P extends '_count'
+          ? T[P] extends boolean
+            ? number
+            : Prisma.GetScalarType<T[P], ShippingMethodGroupByOutputType[P]>
+          : Prisma.GetScalarType<T[P], ShippingMethodGroupByOutputType[P]>;
+      }
+    >
+  >;
 
 export type ShippingMethodWhereInput = {
   AND?: Prisma.ShippingMethodWhereInput | Prisma.ShippingMethodWhereInput[];
@@ -1429,6 +1430,11 @@ export type ShippingMethodFindManyArgs<
    * Skip the first `n` ShippingMethods.
    */
   skip?: number;
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   *
+   * Filter by unique combinations of ShippingMethods.
+   */
   distinct?: Prisma.ShippingMethodScalarFieldEnum | Prisma.ShippingMethodScalarFieldEnum[];
 };
 
