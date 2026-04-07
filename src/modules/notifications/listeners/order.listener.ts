@@ -132,8 +132,8 @@ export class OrderListener {
         return;
       }
 
-      // Create in-app notification for each admin (concurrent for performance)
-      await Promise.all(
+      // Create in-app notification for each admin — allSettled so one failure doesn't block others
+      await Promise.allSettled(
         admins.map((admin) =>
           this.notificationsService.notify({
             userId: admin.id,
@@ -141,7 +141,6 @@ export class OrderListener {
             title: 'New refund request',
             body: `Customer requested refund for order ${event.orderNumber}.`,
             referenceId: event.orderId,
-            // No email here — we send batch email below
           }),
         ),
       );

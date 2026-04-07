@@ -76,26 +76,7 @@ export class NotificationsService {
   }): Promise<void> {
     const { userId, type, referenceId, title, body, email } = params;
 
-    // 1. Idempotency check — prevent duplicate notifications for same event
-    // Same type + referenceId within 1 minute = duplicate
-    if (referenceId) {
-      const oneMinuteAgo = new Date(Date.now() - 60_000);
-      const existing = await this.prisma.notification.findFirst({
-        where: {
-          type,
-          referenceId,
-          createdAt: { gte: oneMinuteAgo },
-        },
-        select: { id: true },
-      });
-
-      if (existing) {
-        this.logger.debug(`Duplicate notification skipped: ${type} for ${referenceId}`);
-        return;
-      }
-    }
-
-    // 2. Check user preferences — opt-out model (no record = enabled)
+    // 1. Check user preferences — opt-out model (no record = enabled)
     const preferences = await this.prisma.notificationPreference.findMany({
       where: { userId, type },
       select: { channel: true, enabled: true },
@@ -108,11 +89,38 @@ export class NotificationsService {
     const inAppEnabled = prefMap.get(NotificationChannel.IN_APP) ?? true;
     const emailEnabled = prefMap.get(NotificationChannel.EMAIL) ?? true;
 
-    // 3. Create in-app notification if enabled
+    // 2. Create in-app notification if enabled
+    // Idempotency check + create wrapped in a transaction to prevent race conditions
+    // Same type + referenceId within 1 minute = duplicate
     if (inAppEnabled) {
-      await this.prisma.notification.create({
-        data: { userId, type, title, body, referenceId },
+      const created = await this.prisma.$transaction(async (tx) => {
+        if (referenceId) {
+          const oneMinuteAgo = new Date(Date.now() - 60_000);
+          const existing = await tx.notification.findFirst({
+            where: {
+              type,
+              referenceId,
+              createdAt: { gte: oneMinuteAgo },
+            },
+            select: { id: true },
+          });
+
+          if (existing) {
+            this.logger.debug(`Duplicate notification skipped: ${type} for ${referenceId}`);
+            return false;
+          }
+        }
+
+        await tx.notification.create({
+          data: { userId, type, title, body, referenceId },
+        });
+        return true;
       });
+
+      // Skip email if in-app was a duplicate
+      if (!created) {
+        return;
+      }
     }
 
     // 4. Send email if enabled and email payload provided

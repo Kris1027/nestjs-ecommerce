@@ -35,7 +35,8 @@ export class ReviewListener {
       const reviewerName = event.userFirstName ?? 'A customer';
 
       // 2. Create in-app notification for each admin (concurrent for performance)
-      await Promise.all(
+      // 2. Create in-app notification for each admin — allSettled so one failure doesn't block others
+      await Promise.allSettled(
         admins.map((admin) =>
           this.notificationsService.notify({
             userId: admin.id,

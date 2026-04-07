@@ -74,6 +74,7 @@ describe('NotificationsService', () => {
     });
 
     it('should skip duplicate notifications within 1 minute', async () => {
+      prisma.notificationPreference.findMany.mockResolvedValue([]);
       prisma.notification.findFirst.mockResolvedValue({ id: 'existing' });
 
       await service.notify(baseParams);

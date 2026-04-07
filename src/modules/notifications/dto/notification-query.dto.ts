@@ -24,6 +24,8 @@ const notificationQuerySchema = PaginationQuerySchema.extend({
       'REFUND_INITIATED',
       'REFUND_COMPLETED',
       'REFUND_FAILED',
+      'REFUND_REQUEST_CREATED',
+      'REVIEW_CREATED',
       'LOW_STOCK',
       'WELCOME',
       'PASSWORD_CHANGED',
