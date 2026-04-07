@@ -5,6 +5,7 @@ import { createMockEmailService } from '@test/mocks/common.mock';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from './email.service';
 import { NotFoundException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -74,7 +75,6 @@ describe('NotificationsService', () => {
     });
 
     it('should skip duplicate notifications within 1 minute', async () => {
-      prisma.notificationPreference.findMany.mockResolvedValue([]);
       prisma.notification.findFirst.mockResolvedValue({ id: 'existing' });
 
       await service.notify(baseParams);
@@ -380,9 +380,13 @@ describe('NotificationsService', () => {
   // ADMIN METHODS
   // ============================================
 
+  const prismaNotFoundError = new Prisma.PrismaClientKnownRequestError('Record not found', {
+    code: 'P2025',
+    clientVersion: '7.0.0',
+  });
+
   describe('adminMarkAsRead', () => {
     it('should mark any notification as read without ownership check', async () => {
-      prisma.notification.findUnique.mockResolvedValue({ id: notificationId });
       const updated = {
         id: notificationId,
         userId,
@@ -406,7 +410,7 @@ describe('NotificationsService', () => {
     });
 
     it('should throw NotFoundException when notification not found', async () => {
-      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.update.mockRejectedValue(prismaNotFoundError);
 
       await expect(service.adminMarkAsRead('nonexistent')).rejects.toThrow(NotFoundException);
     });
@@ -414,7 +418,6 @@ describe('NotificationsService', () => {
 
   describe('adminMarkAsUnread', () => {
     it('should mark any notification as unread without ownership check', async () => {
-      prisma.notification.findUnique.mockResolvedValue({ id: notificationId });
       const updated = {
         id: notificationId,
         userId,
@@ -438,7 +441,7 @@ describe('NotificationsService', () => {
     });
 
     it('should throw NotFoundException when notification not found', async () => {
-      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.update.mockRejectedValue(prismaNotFoundError);
 
       await expect(service.adminMarkAsUnread('nonexistent')).rejects.toThrow(NotFoundException);
     });
@@ -446,7 +449,6 @@ describe('NotificationsService', () => {
 
   describe('adminDeleteOne', () => {
     it('should delete any notification without ownership check', async () => {
-      prisma.notification.findUnique.mockResolvedValue({ id: notificationId });
       prisma.notification.delete.mockResolvedValue({});
 
       await service.adminDeleteOne(notificationId);
@@ -457,7 +459,7 @@ describe('NotificationsService', () => {
     });
 
     it('should throw NotFoundException when notification not found', async () => {
-      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.delete.mockRejectedValue(prismaNotFoundError);
 
       await expect(service.adminDeleteOne('nonexistent')).rejects.toThrow(NotFoundException);
     });

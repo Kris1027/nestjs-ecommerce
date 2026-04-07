@@ -76,7 +76,28 @@ export class NotificationsService {
   }): Promise<void> {
     const { userId, type, referenceId, title, body, email } = params;
 
-    // 1. Check user preferences — opt-out model (no record = enabled)
+    // 1. Best-effort idempotency check — prevent duplicate notifications for same event
+    // Same type + referenceId within 1 minute = duplicate (covers both in-app and email)
+    // Note: not fully race-proof without a DB-level unique constraint, but sufficient
+    // for notification dedup where a rare duplicate is acceptable
+    if (referenceId) {
+      const oneMinuteAgo = new Date(Date.now() - 60_000);
+      const existing = await this.prisma.notification.findFirst({
+        where: {
+          type,
+          referenceId,
+          createdAt: { gte: oneMinuteAgo },
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        this.logger.debug(`Duplicate notification skipped: ${type} for ${referenceId}`);
+        return;
+      }
+    }
+
+    // 2. Check user preferences — opt-out model (no record = enabled)
     const preferences = await this.prisma.notificationPreference.findMany({
       where: { userId, type },
       select: { channel: true, enabled: true },
@@ -89,38 +110,11 @@ export class NotificationsService {
     const inAppEnabled = prefMap.get(NotificationChannel.IN_APP) ?? true;
     const emailEnabled = prefMap.get(NotificationChannel.EMAIL) ?? true;
 
-    // 2. Create in-app notification if enabled
-    // Idempotency check + create wrapped in a transaction to prevent race conditions
-    // Same type + referenceId within 1 minute = duplicate
+    // 3. Create in-app notification if enabled
     if (inAppEnabled) {
-      const created = await this.prisma.$transaction(async (tx) => {
-        if (referenceId) {
-          const oneMinuteAgo = new Date(Date.now() - 60_000);
-          const existing = await tx.notification.findFirst({
-            where: {
-              type,
-              referenceId,
-              createdAt: { gte: oneMinuteAgo },
-            },
-            select: { id: true },
-          });
-
-          if (existing) {
-            this.logger.debug(`Duplicate notification skipped: ${type} for ${referenceId}`);
-            return false;
-          }
-        }
-
-        await tx.notification.create({
-          data: { userId, type, title, body, referenceId },
-        });
-        return true;
+      await this.prisma.notification.create({
+        data: { userId, type, title, body, referenceId },
       });
-
-      // Skip email if in-app was a duplicate
-      if (!created) {
-        return;
-      }
     }
 
     // 4. Send email if enabled and email payload provided
@@ -320,55 +314,58 @@ export class NotificationsService {
   }
 
   // Admin mark any notification as read (no ownership check)
+  // Single query — catches P2025 if record doesn't exist
   async adminMarkAsRead(notificationId: string): Promise<AdminNotificationResponse> {
-    const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId },
-      select: { id: true },
-    });
-
-    if (!notification) {
-      throw new NotFoundException('Notification not found');
+    try {
+      return await this.prisma.notification.update({
+        where: { id: notificationId },
+        data: { isRead: true },
+        select: adminNotificationSelect,
+      });
+    } catch (error) {
+      if (this.isPrismaNotFound(error)) {
+        throw new NotFoundException('Notification not found');
+      }
+      throw error;
     }
-
-    return this.prisma.notification.update({
-      where: { id: notificationId },
-      data: { isRead: true },
-      select: adminNotificationSelect,
-    });
   }
 
   // Admin mark any notification as unread (no ownership check)
   async adminMarkAsUnread(notificationId: string): Promise<AdminNotificationResponse> {
-    const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId },
-      select: { id: true },
-    });
-
-    if (!notification) {
-      throw new NotFoundException('Notification not found');
+    try {
+      return await this.prisma.notification.update({
+        where: { id: notificationId },
+        data: { isRead: false },
+        select: adminNotificationSelect,
+      });
+    } catch (error) {
+      if (this.isPrismaNotFound(error)) {
+        throw new NotFoundException('Notification not found');
+      }
+      throw error;
     }
-
-    return this.prisma.notification.update({
-      where: { id: notificationId },
-      data: { isRead: false },
-      select: adminNotificationSelect,
-    });
   }
 
   // Admin delete any notification (no ownership check)
   async adminDeleteOne(notificationId: string): Promise<void> {
-    const notification = await this.prisma.notification.findUnique({
-      where: { id: notificationId },
-      select: { id: true },
-    });
-
-    if (!notification) {
-      throw new NotFoundException('Notification not found');
+    try {
+      await this.prisma.notification.delete({
+        where: { id: notificationId },
+      });
+    } catch (error) {
+      if (this.isPrismaNotFound(error)) {
+        throw new NotFoundException('Notification not found');
+      }
+      throw error;
     }
+  }
 
-    await this.prisma.notification.delete({
-      where: { id: notificationId },
-    });
+  // ============================================
+  // PRIVATE HELPERS
+  // ============================================
+
+  private isPrismaNotFound(error: unknown): boolean {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
   }
 
   // Admin delete all read notifications across all users
