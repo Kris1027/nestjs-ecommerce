@@ -161,9 +161,9 @@ describe('CategoriesService', () => {
       const result = await service.findAllTree();
 
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe(parent.id);
-      expect(result[0].children).toHaveLength(1);
-      expect(result[0].children[0].id).toBe(child.id);
+      expect(result[0]!.id).toBe(parent.id);
+      expect(result[0]!.children).toHaveLength(1);
+      expect(result[0]!.children[0]!.id).toBe(child.id);
     });
 
     it('should return multiple roots when no parent relationship', async () => {

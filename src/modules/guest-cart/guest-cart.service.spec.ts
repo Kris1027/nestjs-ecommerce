@@ -68,8 +68,8 @@ describe('GuestCartService', () => {
 
       expect(result.id).toBe(cartId);
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].unitPrice).toBe(29.99);
-      expect(result.items[0].lineTotal).toBe(59.98);
+      expect(result.items[0]!.unitPrice).toBe(29.99);
+      expect(result.items[0]!.lineTotal).toBe(59.98);
       expect(result.totalItems).toBe(2);
       expect(result.subtotal).toBe(59.98);
       expect(prisma.guestCart.findUnique).toHaveBeenCalledWith({
