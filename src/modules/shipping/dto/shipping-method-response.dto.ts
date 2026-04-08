@@ -23,8 +23,11 @@ export class ShippingMethodDto {
   })
   freeShippingThreshold!: string | null;
 
-  @ApiProperty({ description: 'Estimated delivery time in business days', example: 5 })
-  estimatedDays!: number;
+  @ApiProperty({
+    description: 'Estimated delivery time in business days',
+    example: '3-5 business days',
+  })
+  estimatedDays!: string;
 
   @ApiProperty({ description: 'Display order (lower = first)', example: 1 })
   sortOrder!: number;

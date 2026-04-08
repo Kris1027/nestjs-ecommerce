@@ -43,11 +43,11 @@ export class ReviewDto {
   })
   title!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Review body text',
     example: 'Best headphones I have ever owned.',
   })
-  comment!: string | null;
+  comment!: string;
 
   @ApiProperty({
     description: 'Moderation status',
