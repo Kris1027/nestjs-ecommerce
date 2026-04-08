@@ -220,7 +220,7 @@ export class ProductsService {
       OFFSET ${skip}
     `;
 
-    const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    const total = rows.length > 0 ? Number(rows[0]!.total_count) : 0;
     const products = rows.map((row) => this.mapRawProductToListItem(row));
 
     return { products, total };

@@ -3,31 +3,31 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 // Nested reviewer info (public-safe, no email/password)
 export class ReviewUserDto {
   @ApiProperty({ example: 'clxyz123abc456' })
-  id: string;
+  id!: string;
 
   @ApiPropertyOptional({ example: 'John' })
-  firstName: string | null;
+  firstName!: string | null;
 
   @ApiPropertyOptional({ example: 'Doe' })
-  lastName: string | null;
+  lastName!: string | null;
 }
 
 // Nested product summary
 export class ReviewProductDto {
   @ApiProperty({ example: 'clxyz789def012' })
-  id: string;
+  id!: string;
 
   @ApiProperty({ example: 'Wireless Headphones' })
-  name: string;
+  name!: string;
 
   @ApiProperty({ example: 'wireless-headphones' })
-  slug: string;
+  slug!: string;
 }
 
 // Mirrors reviewSelect from the service
 export class ReviewDto {
   @ApiProperty({ example: 'clxyz456ghi789' })
-  id: string;
+  id!: string;
 
   @ApiProperty({
     description: 'Star rating 1-5',
@@ -35,48 +35,48 @@ export class ReviewDto {
     maximum: 5,
     example: 4,
   })
-  rating: number;
+  rating!: number;
 
   @ApiPropertyOptional({
     description: 'Review headline',
     example: 'Great sound quality',
   })
-  title: string | null;
+  title!: string | null;
 
   @ApiPropertyOptional({
     description: 'Review body text',
     example: 'Best headphones I have ever owned.',
   })
-  comment: string | null;
+  comment!: string | null;
 
   @ApiProperty({
     description: 'Moderation status',
     enum: ['PENDING', 'APPROVED', 'REJECTED'],
     example: 'APPROVED',
   })
-  status: string;
+  status!: string;
 
   @ApiPropertyOptional({
     description: 'Admin moderation note',
     example: 'Approved — meets guidelines',
   })
-  adminNote: string | null;
+  adminNote!: string | null;
 
   @ApiProperty({ example: '2025-01-15T12:00:00.000Z' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty({ example: '2025-01-15T12:00:00.000Z' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ApiProperty({
     description: 'Reviewer public info',
     type: ReviewUserDto,
   })
-  user: ReviewUserDto;
+  user!: ReviewUserDto;
 
   @ApiProperty({
     description: 'Reviewed product summary',
     type: ReviewProductDto,
   })
-  product: ReviewProductDto;
+  product!: ReviewProductDto;
 }

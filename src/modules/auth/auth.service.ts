@@ -90,8 +90,8 @@ export class AuthService {
       throw new Error(`Invalid expiry format: ${expiry}`);
     }
 
-    const value = parseInt(match[1], 10);
-    const unit = match[2];
+    const value = parseInt(match[1]!, 10);
+    const unit = match[2]!;
 
     const multipliers: Record<string, number> = {
       s: 1000,
@@ -100,7 +100,7 @@ export class AuthService {
       d: 24 * 60 * 60 * 1000,
     };
 
-    return value * multipliers[unit];
+    return value * multipliers[unit]!;
   }
 
   private generateSecureToken(): string {

@@ -267,9 +267,9 @@ describe('ProductsService', () => {
       });
 
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].name).toBe('Wireless Headphones');
-      expect(result.data[0].category.name).toBe('Electronics');
-      expect(result.data[0].images).toHaveLength(1);
+      expect(result.data[0]!.name).toBe('Wireless Headphones');
+      expect(result.data[0]!.category.name).toBe('Electronics');
+      expect(result.data[0]!.images).toHaveLength(1);
       expect(result.meta.total).toBe(1);
     });
 
@@ -342,8 +342,8 @@ describe('ProductsService', () => {
         search: 'basic laptop',
       });
 
-      expect(result.data[0].images).toHaveLength(0);
-      expect(result.data[0].isFeatured).toBe(true);
+      expect(result.data[0]!.images).toHaveLength(0);
+      expect(result.data[0]!.isFeatured).toBe(true);
     });
 
     it('should sort by specified field and order', async () => {
