@@ -20,6 +20,7 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'staging', 'production', 'test']),
     PORT: z.coerce.number().default(3000),
     DATABASE_URL: z.string().min(1),
+    DIRECT_URL: z.string().min(1).optional(),
     CORS_ORIGIN: z
       .string()
       .transform((val) =>
