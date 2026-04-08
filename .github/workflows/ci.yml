@@ -78,6 +78,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Typecheck
+        run: pnpm typecheck
+
   test:
     name: Test
     runs-on: ubuntu-latest
