@@ -147,7 +147,7 @@ export type WebhookEventGroupByOutputType = {
   _max: WebhookEventMaxAggregateOutputType | null;
 };
 
-type GetWebhookEventGroupByPayload<T extends WebhookEventGroupByArgs> = Prisma.PrismaPromise<
+export type GetWebhookEventGroupByPayload<T extends WebhookEventGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<WebhookEventGroupByOutputType, T['by']> & {
       [P in keyof T & keyof WebhookEventGroupByOutputType]: P extends '_count'
@@ -1087,6 +1087,11 @@ export type WebhookEventFindManyArgs<
    * Skip the first `n` WebhookEvents.
    */
   skip?: number;
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   *
+   * Filter by unique combinations of WebhookEvents.
+   */
   distinct?: Prisma.WebhookEventScalarFieldEnum | Prisma.WebhookEventScalarFieldEnum[];
 };
 
