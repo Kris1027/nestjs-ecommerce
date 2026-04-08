@@ -159,7 +159,7 @@ export type GuestCartGroupByOutputType = {
   _max: GuestCartMaxAggregateOutputType | null;
 };
 
-type GetGuestCartGroupByPayload<T extends GuestCartGroupByArgs> = Prisma.PrismaPromise<
+export type GetGuestCartGroupByPayload<T extends GuestCartGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<GuestCartGroupByOutputType, T['by']> & {
       [P in keyof T & keyof GuestCartGroupByOutputType]: P extends '_count'
@@ -1315,6 +1315,11 @@ export type GuestCartFindManyArgs<
    * Skip the first `n` GuestCarts.
    */
   skip?: number;
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   *
+   * Filter by unique combinations of GuestCarts.
+   */
   distinct?: Prisma.GuestCartScalarFieldEnum | Prisma.GuestCartScalarFieldEnum[];
 };
 

@@ -105,6 +105,7 @@ import { AppCacheModule } from './modules/cache/cache.module';
           }),
         },
       },
+      forRoutes: [{ path: '*path', method: RequestMethod.ALL }],
       exclude: [{ method: RequestMethod.ALL, path: 'health' }],
     }),
     PrismaModule,

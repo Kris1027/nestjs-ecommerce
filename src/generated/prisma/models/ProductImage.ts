@@ -209,7 +209,7 @@ export type ProductImageGroupByOutputType = {
   _max: ProductImageMaxAggregateOutputType | null;
 };
 
-type GetProductImageGroupByPayload<T extends ProductImageGroupByArgs> = Prisma.PrismaPromise<
+export type GetProductImageGroupByPayload<T extends ProductImageGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ProductImageGroupByOutputType, T['by']> & {
       [P in keyof T & keyof ProductImageGroupByOutputType]: P extends '_count'
@@ -1503,6 +1503,11 @@ export type ProductImageFindManyArgs<
    * Skip the first `n` ProductImages.
    */
   skip?: number;
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   *
+   * Filter by unique combinations of ProductImages.
+   */
   distinct?: Prisma.ProductImageScalarFieldEnum | Prisma.ProductImageScalarFieldEnum[];
 };
 
