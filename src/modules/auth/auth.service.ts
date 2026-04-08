@@ -79,7 +79,7 @@ export class AuthService {
   }
 
   private getRefreshTokenExpiry(): Date {
-    const expiresIn = this.configService.get('JWT_REFRESH_EXPIRES_IN');
+    const expiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN');
     const ms = this.parseExpiry(expiresIn);
     return new Date(Date.now() + ms);
   }

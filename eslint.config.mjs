@@ -1,10 +1,11 @@
 // @ts-check
+import { defineConfig } from 'eslint/config';
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
+export default defineConfig([
   {
     ignores: ['eslint.config.mjs', 'dist/**', 'node_modules/**', 'src/generated/**'],
   },
@@ -71,17 +72,6 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
-  // Override for files using Prisma types (adapter causes type inference issues)
-  {
-    files: ['src/**/*.service.ts', 'src/**/*.listener.ts', 'src/**/*.processor.ts'],
-    rules: {
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-    },
-  },
   // Override for test files (mocks require flexible typing)
   {
     files: ['test/**/*.ts', 'src/**/*.spec.ts'],
@@ -95,4 +85,4 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'off',
     },
   },
-);
+]);
