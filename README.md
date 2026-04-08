@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml)
 
-A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.7, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 97 fully documented API endpoints.
+A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.9, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 97 fully documented API endpoints.
 
 ---
 
@@ -10,7 +10,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 
 | Layer              | Technology                                  |
 | ------------------ | ------------------------------------------- |
-| **Framework**      | NestJS 11 (TypeScript 5.7, strict mode)     |
+| **Framework**      | NestJS 11 (TypeScript 5.9, strict mode)     |
 | **Database**       | PostgreSQL + Prisma 7 ORM                   |
 | **Authentication** | JWT access/refresh tokens (token rotation)  |
 | **Payments**       | Stripe (PaymentIntents + webhooks)          |
@@ -20,9 +20,9 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (97 endpoints)              |
-| **Testing**        | Jest 30 (44 unit suites, 5 E2E suites, 690 tests) |
+| **Testing**        | Jest 30 (45 unit suites, 5 E2E suites, 681 tests) |
 | **Containerization** | Docker + Docker Compose                   |
-| **CI/CD**          | GitHub Actions (lint, test, build)           |
+| **CI/CD**          | GitHub Actions (security, lint, typecheck, test, build) |
 | **Hosting**        | Railway (staging + production environments) |
 | **Observability**  | OpenTelemetry (traces) + Jaeger             |
 | **Logging**        | nestjs-pino (structured, request-scoped)    |
@@ -365,7 +365,7 @@ See [`.env.example`](.env.example) for all required variables. Key groups:
 | Group           | Variables                                              |
 | --------------- | ------------------------------------------------------ |
 | **App**         | `NODE_ENV`, `PORT`, `STORE_URL`, `ADMIN_URL`, `CORS_ORIGIN` |
-| **Database**    | `DATABASE_URL`                                         |
+| **Database**    | `DATABASE_URL`, `DIRECT_URL` (optional, for Prisma CLI) |
 | **JWT**         | `JWT_SECRET`, `JWT_REFRESH_SECRET`, expiration configs  |
 | **Stripe**      | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`           |
 | **Cloudinary**  | `CLOUDINARY_CLOUD_NAME`, `API_KEY`, `API_SECRET`       |
@@ -392,7 +392,7 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **44 test suites** with **659 unit tests**
+- **45 test suites** with **681 unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
@@ -435,20 +435,21 @@ Hosted on **Railway** with isolated staging and production environments.
 - **PR Preview Environments** — each PR gets a temporary Railway environment for testing
 - **Multi-stage Dockerfile** — optimized production image with non-root user, health checks, and graceful shutdown
 - **Environment isolation** — staging and production have separate databases, Redis instances, and env variables
-- **Schema sync** — `prisma db push` syncs the database schema (no migrations)
+- **Schema sync** — `prisma migrate deploy` applies migrations on deploy
 
 ---
 
 ## CI/CD
 
-GitHub Actions runs **4 parallel jobs** on every PR and push to main:
+GitHub Actions runs **5 parallel jobs** on every PR and push to main:
 
-| Job        | Timeout | Description                                    |
-| ---------- | ------- | ---------------------------------------------- |
-| **Lint**   | 5 min   | ESLint checks                                  |
-| **Test**   | 10 min  | 659 unit tests + 31 E2E tests via Jest         |
-| **Build**  | 5 min   | TypeScript compilation (type safety)            |
-| **Docker** | 10 min  | Build production Docker image (same as Railway) |
+| Job            | Timeout | Description                                         |
+| -------------- | ------- | --------------------------------------------------- |
+| **Security**   | 5 min   | Dependency vulnerability scanning (`pnpm audit`)    |
+| **Lint**       | 5 min   | ESLint checks + TypeScript typecheck                |
+| **Test**       | 10 min  | 681 unit tests with coverage threshold enforcement  |
+| **Build**      | 5 min   | TypeScript compilation (type safety)                |
+| **Docker**     | 10 min  | Build production Docker image (same as Railway)     |
 
 - pnpm dependency caching for fast runs
 - `--frozen-lockfile` to prevent dependency drift
