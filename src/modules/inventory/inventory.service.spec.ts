@@ -528,6 +528,56 @@ describe('InventoryService', () => {
       );
     });
 
+    it('should emit LowStockEvent when stock drops below threshold after sale', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: mockStockProduct.id,
+        stock: 8,
+        reservedStock: 5,
+      });
+      prisma.product.update.mockResolvedValue({
+        ...mockStockProduct,
+        stock: 3,
+        reservedStock: 0,
+        lowStockThreshold: 5,
+      });
+      prisma.stockMovement.create.mockResolvedValue(mockMovement);
+
+      await service.confirmSale(mockStockProduct.id, 5);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        NotificationEvents.LOW_STOCK,
+        expect.objectContaining({
+          productId: mockStockProduct.id,
+          productName: 'Test Product',
+          currentStock: 3,
+          threshold: 5,
+        }),
+      );
+    });
+
+    it('should use custom reason when provided', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: mockStockProduct.id,
+        stock: 100,
+        reservedStock: 10,
+      });
+      prisma.product.update.mockResolvedValue({
+        ...mockStockProduct,
+        stock: 95,
+        reservedStock: 5,
+      });
+      prisma.stockMovement.create.mockResolvedValue(mockMovement);
+
+      await service.confirmSale(mockStockProduct.id, 5, undefined, 'Order ORD-123 confirmed');
+
+      expect(prisma.stockMovement.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          reason: 'Order ORD-123 confirmed',
+        }),
+        select: expect.objectContaining({ id: true }),
+      });
+    });
+
     it('should throw BadRequestException when confirming more than reserved', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: mockStockProduct.id,
