@@ -135,7 +135,12 @@ export class AuthService {
   // PUBLIC METHODS
   // ============================================
 
-  async register(dto: RegisterDto, userAgent?: string, ipAddress?: string): Promise<TokenResponse> {
+  async register(
+    dto: RegisterDto,
+    userAgent?: string,
+    ipAddress?: string,
+    guestCartToken?: string,
+  ): Promise<TokenResponse> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -178,6 +183,15 @@ export class AuthService {
 
     // Send verification email (verification-first)
     await this.sendVerificationEmail(user.id, user.email, user.firstName);
+
+    // Merge guest cart into user cart if token provided
+    if (guestCartToken) {
+      try {
+        await this.guestCartService.mergeIntoUserCart(guestCartToken, user.id);
+      } catch {
+        // Ignore merge errors - don't block registration
+      }
+    }
 
     return { accessToken, refreshToken };
   }

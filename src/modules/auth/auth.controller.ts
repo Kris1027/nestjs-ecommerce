@@ -39,13 +39,22 @@ export class AuthController {
     long: { limit: 10, ttl: 60000 },
   })
   @ApiOperation({ summary: 'Register a new user account' })
+  @ApiHeader({
+    name: 'x-guest-cart-token',
+    description: 'Guest cart token to merge on registration',
+    required: false,
+  })
   @ApiSuccessResponse(TokenResponseDto, 201, 'User registered successfully')
   @ApiErrorResponses(400, 409, 429)
-  async register(@Body() dto: RegisterDto, @Req() req: Request): Promise<TokenResponse> {
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+    @Headers('x-guest-cart-token') guestCartToken?: string,
+  ): Promise<TokenResponse> {
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip || req.socket.remoteAddress;
 
-    return this.authService.register(dto, userAgent, ipAddress);
+    return this.authService.register(dto, userAgent, ipAddress, guestCartToken);
   }
 
   @Post('login')

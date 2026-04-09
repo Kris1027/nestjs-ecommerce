@@ -120,6 +120,37 @@ describe('AuthService', () => {
 
       expect(bcrypt.hash).toHaveBeenCalledWith(sampleRegisterDto.password, 12);
     });
+
+    it('should merge guest cart on register when token provided', async () => {
+      const mockUser = createMockUser({ email: sampleRegisterDto.email });
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(mockUser);
+      prisma.refreshToken.create.mockResolvedValue({} as never);
+      prisma.user.update.mockResolvedValue(mockUser);
+
+      await service.register(sampleRegisterDto, 'Mozilla/5.0', '127.0.0.1', 'guest-cart-token');
+
+      expect(guestCartService.mergeIntoUserCart).toHaveBeenCalledWith(
+        'guest-cart-token',
+        mockUser.id,
+      );
+    });
+
+    it('should not block registration if guest cart merge fails', async () => {
+      const mockUser = createMockUser({ email: sampleRegisterDto.email });
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue(mockUser);
+      prisma.refreshToken.create.mockResolvedValue({} as never);
+      prisma.user.update.mockResolvedValue(mockUser);
+      guestCartService.mergeIntoUserCart.mockRejectedValue(new Error('merge failed'));
+
+      const result = await service.register(sampleRegisterDto, undefined, undefined, 'guest-token');
+
+      expect(result).toEqual({
+        accessToken: 'mock-jwt-token',
+        refreshToken: 'mock-jwt-token',
+      });
+    });
   });
 
   describe('login', () => {
