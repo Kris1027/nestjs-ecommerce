@@ -189,7 +189,7 @@ export type RefreshTokenGroupByOutputType = {
   _max: RefreshTokenMaxAggregateOutputType | null;
 };
 
-export type GetRefreshTokenGroupByPayload<T extends RefreshTokenGroupByArgs> = Prisma.PrismaPromise<
+type GetRefreshTokenGroupByPayload<T extends RefreshTokenGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<RefreshTokenGroupByOutputType, T['by']> & {
       [P in keyof T & keyof RefreshTokenGroupByOutputType]: P extends '_count'
@@ -1537,11 +1537,6 @@ export type RefreshTokenFindManyArgs<
    * Skip the first `n` RefreshTokens.
    */
   skip?: number;
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-   *
-   * Filter by unique combinations of RefreshTokens.
-   */
   distinct?: Prisma.RefreshTokenScalarFieldEnum | Prisma.RefreshTokenScalarFieldEnum[];
 };
 
