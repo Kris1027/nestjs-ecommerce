@@ -200,15 +200,30 @@ export class InventoryService {
     return result;
   }
 
+  private static readonly INVENTORY_SORT_FIELDS = new Set([
+    'name',
+    'stock',
+    'reservedStock',
+    'lowStockThreshold',
+  ]);
+
   async getAllProducts(query: PaginationQuery): Promise<PaginatedResult<StockInfo>> {
     const { skip, take } = getPrismaPageArgs(query);
     const where = { isActive: true };
+
+    const sortField =
+      query.sortBy && InventoryService.INVENTORY_SORT_FIELDS.has(query.sortBy)
+        ? query.sortBy
+        : 'name';
+    const orderBy: Record<string, 'asc' | 'desc'> = {
+      [sortField]: query.sortOrder || 'asc',
+    };
 
     const [products, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
         select: stockInfoSelect,
-        orderBy: { name: 'asc' },
+        orderBy,
         skip,
         take,
       }),

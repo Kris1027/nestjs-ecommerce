@@ -205,7 +205,7 @@ export type TaxRateGroupByOutputType = {
   _max: TaxRateMaxAggregateOutputType | null;
 };
 
-export type GetTaxRateGroupByPayload<T extends TaxRateGroupByArgs> = Prisma.PrismaPromise<
+type GetTaxRateGroupByPayload<T extends TaxRateGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<TaxRateGroupByOutputType, T['by']> & {
       [P in keyof T & keyof TaxRateGroupByOutputType]: P extends '_count'
@@ -1245,11 +1245,6 @@ export type TaxRateFindManyArgs<
    * Skip the first `n` TaxRates.
    */
   skip?: number;
-  /**
-   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-   *
-   * Filter by unique combinations of TaxRates.
-   */
   distinct?: Prisma.TaxRateScalarFieldEnum | Prisma.TaxRateScalarFieldEnum[];
 };
 

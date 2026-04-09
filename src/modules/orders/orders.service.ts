@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   Prisma,
@@ -94,6 +94,8 @@ const validTransitions: Record<OrderStatus, OrderStatus[]> = {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
@@ -676,7 +678,8 @@ export class OrdersService {
       );
     }
 
-    // Update status + stock operations atomically in one transaction
+    // Update status (+ cancellation stock ops) in a transaction.
+    // CONFIRMED stock confirmation is delegated to InventoryService after commit.
     const updated = await this.prisma.$transaction(async (tx) => {
       // If admin cancels, restore stock based on current order status
       if (newStatus === OrderStatus.CANCELLED) {
@@ -744,19 +747,6 @@ export class OrdersService {
       });
     });
 
-    // Emit event for status change notification (after transaction commits)
-    this.eventEmitter.emit(
-      NotificationEvents.ORDER_STATUS_CHANGED,
-      new OrderStatusChangedEvent(
-        order.userId,
-        order.user.email,
-        order.user.firstName,
-        orderId,
-        order.orderNumber,
-        newStatus,
-      ),
-    );
-
     // Delegate stock confirmation to InventoryService (emits LOW_STOCK + cache events)
     // Stock is already reserved, so confirmSale converts reservations to actual sales.
     // Wrapped in try-catch per item so a single product failure doesn't block the rest.
@@ -773,12 +763,27 @@ export class OrdersService {
             undefined,
             `Order ${order.orderNumber} confirmed`,
           );
-        } catch {
-          // Log but don't fail — order is already confirmed, stock remains reserved
-          // and can be reconciled manually via the inventory admin endpoint
+        } catch (error) {
+          this.logger.error(
+            `Failed to confirm sale for product ${item.productId} (qty: ${item.quantity}) on order ${order.orderNumber}. Stock remains reserved and needs manual reconciliation.`,
+            error instanceof Error ? error.stack : undefined,
+          );
         }
       }
     }
+
+    // Emit after stock ops so cache invalidation reflects the final state
+    this.eventEmitter.emit(
+      NotificationEvents.ORDER_STATUS_CHANGED,
+      new OrderStatusChangedEvent(
+        order.userId,
+        order.user.email,
+        order.user.firstName,
+        orderId,
+        order.orderNumber,
+        newStatus,
+      ),
+    );
 
     return updated;
   }
