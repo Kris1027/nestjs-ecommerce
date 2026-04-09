@@ -749,6 +749,73 @@ describe('ProductsService', () => {
     });
   });
 
+  describe('reorderImages', () => {
+    const imageA = 'climg1111111111111111111';
+    const imageB = 'climg2222222222222222222';
+    const imageC = 'climg3333333333333333333';
+
+    it('should update sortOrder for all images and emit cache event', async () => {
+      prisma.product.findUnique
+        .mockResolvedValueOnce({
+          id: mockProduct.id,
+          images: [{ id: imageA }, { id: imageB }, { id: imageC }],
+        })
+        .mockResolvedValueOnce(mockProduct); // findById after reorder
+      prisma.$transaction.mockResolvedValue([]);
+
+      const result = await service.reorderImages(mockProduct.id, [imageC, imageA, imageB]);
+
+      expect(result).toEqual(mockProduct);
+      expect(prisma.$transaction).toHaveBeenCalledWith([
+        prisma.productImage.update({ where: { id: imageC }, data: { sortOrder: 0 } }),
+        prisma.productImage.update({ where: { id: imageA }, data: { sortOrder: 1 } }),
+        prisma.productImage.update({ where: { id: imageB }, data: { sortOrder: 2 } }),
+      ]);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockProduct.id, action: 'image_change' }),
+      );
+    });
+
+    it('should throw NotFoundException when product does not exist', async () => {
+      prisma.product.findUnique.mockResolvedValue(null);
+
+      await expect(service.reorderImages('nonexistent', [imageA])).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when imageIds count does not match', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: mockProduct.id,
+        images: [{ id: imageA }, { id: imageB }],
+      });
+
+      await expect(service.reorderImages(mockProduct.id, [imageA])).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when an imageId does not belong to the product', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: mockProduct.id,
+        images: [{ id: imageA }, { id: imageB }],
+      });
+
+      const foreignId = 'climg9999999999999999999';
+
+      await expect(service.reorderImages(mockProduct.id, [imageA, foreignId])).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
   describe('removeImage', () => {
     it('should remove image and cleanup cloudinary', async () => {
       prisma.productImage.findUnique.mockResolvedValue({
