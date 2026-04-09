@@ -147,6 +147,47 @@ describe('InventoryService', () => {
     });
   });
 
+  describe('getAllProducts', () => {
+    it('should return all active products with computed stock fields', async () => {
+      prisma.product.findMany.mockResolvedValue([
+        { ...mockStockProduct, stock: 100, reservedStock: 10, lowStockThreshold: 5 },
+        {
+          ...mockStockProduct,
+          id: 'low-1',
+          name: 'Low Product',
+          stock: 5,
+          reservedStock: 3,
+          lowStockThreshold: 5,
+        },
+      ]);
+      prisma.product.count.mockResolvedValue(2);
+
+      const result = await service.getAllProducts({ page: 1, limit: 10, sortOrder: 'desc' });
+
+      expect(result.data).toHaveLength(2);
+      expect(result.meta.total).toBe(2);
+      expect(result.data[0]).toEqual(
+        expect.objectContaining({ availableStock: 90, isLowStock: false }),
+      );
+      expect(result.data[1]).toEqual(
+        expect.objectContaining({ availableStock: 2, isLowStock: true }),
+      );
+      expect(prisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isActive: true } }),
+      );
+    });
+
+    it('should return empty results when no products exist', async () => {
+      prisma.product.findMany.mockResolvedValue([]);
+      prisma.product.count.mockResolvedValue(0);
+
+      const result = await service.getAllProducts({ page: 1, limit: 10, sortOrder: 'desc' });
+
+      expect(result.data).toHaveLength(0);
+      expect(result.meta.total).toBe(0);
+    });
+  });
+
   describe('getLowStockProducts', () => {
     it('should return low stock products from raw SQL query', async () => {
       prisma.$queryRaw

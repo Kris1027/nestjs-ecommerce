@@ -2,7 +2,13 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from 
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { InventoryService } from './inventory.service';
 import { CurrentUser, Roles } from '../../common/decorators';
-import { AdjustStockDto, StockInfoDto, StockMovementDto, StockOperationResultDto } from './dto';
+import {
+  AdjustStockDto,
+  InventoryQueryDto,
+  StockInfoDto,
+  StockMovementDto,
+  StockOperationResultDto,
+} from './dto';
 import { PaginationQueryDto } from '../../common/dto/pagination.dto';
 import { StockMovementType } from '../../generated/prisma/client';
 import { ApiErrorResponses, ApiPaginatedResponse, ApiSuccessResponse } from '../../common/swagger';
@@ -16,6 +22,19 @@ export class InventoryController {
   // ============================================
   // ADMIN ENDPOINTS
   // ============================================
+
+  @Get()
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'List all products with stock info, optionally filtered (admin)' })
+  @ApiPaginatedResponse(StockInfoDto, 'Paginated product stock list')
+  @ApiErrorResponses(401, 403, 429)
+  getProducts(@Query() query: InventoryQueryDto): ReturnType<InventoryService['getAllProducts']> {
+    if (query.filter === 'low-stock') {
+      return this.inventoryService.getLowStockProducts(query);
+    }
+
+    return this.inventoryService.getAllProducts(query);
+  }
 
   @Get('low-stock')
   @Roles('ADMIN')
