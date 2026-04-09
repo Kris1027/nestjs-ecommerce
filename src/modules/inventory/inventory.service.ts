@@ -377,6 +377,7 @@ export class InventoryService {
     productId: string,
     quantity: number,
     userId?: string,
+    reason?: string,
   ): Promise<StockOperationResult> {
     if (quantity <= 0) {
       throw new BadRequestException('Quantity must be positive');
@@ -415,7 +416,7 @@ export class InventoryService {
             productId,
             type: StockMovementType.SALE,
             quantity: -quantity,
-            reason: 'Order confirmed',
+            reason: reason ?? 'Order confirmed',
             stockBefore,
             stockAfter,
             userId,
@@ -434,6 +435,18 @@ export class InventoryService {
         movement,
       };
     });
+
+    if (result.product.isLowStock) {
+      this.eventEmitter.emit(
+        NotificationEvents.LOW_STOCK,
+        new LowStockEvent(
+          productId,
+          result.product.name,
+          result.product.availableStock,
+          result.product.lowStockThreshold,
+        ),
+      );
+    }
 
     await this.eventEmitter.emitAsync(
       CacheEvents.PRODUCT_CHANGED,

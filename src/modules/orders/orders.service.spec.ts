@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { ShippingService } from '../shipping/shipping.service';
 import { TaxService } from '../tax/tax.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
@@ -18,6 +19,7 @@ describe('OrdersService', () => {
   let couponsService: { validateCoupon: jest.Mock };
   let shippingService: { calculateShipping: jest.Mock };
   let taxService: { calculateTax: jest.Mock };
+  let inventoryService: { confirmSale: jest.Mock };
 
   beforeEach(async () => {
     prisma = createMockPrismaClient();
@@ -25,6 +27,7 @@ describe('OrdersService', () => {
     couponsService = { validateCoupon: jest.fn() };
     shippingService = { calculateShipping: jest.fn() };
     taxService = { calculateTax: jest.fn() };
+    inventoryService = { confirmSale: jest.fn().mockResolvedValue({}) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -33,6 +36,7 @@ describe('OrdersService', () => {
         { provide: CouponsService, useValue: couponsService },
         { provide: ShippingService, useValue: shippingService },
         { provide: TaxService, useValue: taxService },
+        { provide: InventoryService, useValue: inventoryService },
         { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
@@ -672,22 +676,17 @@ describe('OrdersService', () => {
       );
     });
 
-    it('should convert reservations to sales when confirming', async () => {
+    it('should delegate stock confirmation to InventoryService when confirming', async () => {
       prisma.order.findUnique.mockResolvedValue(mockOrder);
-      prisma.product.findMany.mockResolvedValue([{ id: productId, stock: 100, reservedStock: 10 }]);
-      prisma.product.update.mockResolvedValue({});
-      prisma.stockMovement.create.mockResolvedValue({});
       prisma.order.update.mockResolvedValue({ ...mockOrderDetail, status: 'CONFIRMED' });
 
       await service.updateOrderStatus(orderId, { status: 'CONFIRMED' });
 
-      expect(prisma.product.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: {
-            stock: { decrement: 2 },
-            reservedStock: { decrement: 2 },
-          },
-        }),
+      expect(inventoryService.confirmSale).toHaveBeenCalledWith(
+        productId,
+        2,
+        undefined,
+        `Order ${mockOrder.orderNumber} confirmed`,
       );
     });
 

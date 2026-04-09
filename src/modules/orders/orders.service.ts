@@ -15,6 +15,7 @@ import { ensureUniqueOrderNumber } from '../../common/utils/order-number.util';
 import { CouponsService } from '../coupons/coupons.service';
 import { ShippingService } from '../shipping/shipping.service';
 import { TaxService } from '../tax/tax.service';
+import { InventoryService } from '../inventory/inventory.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import type { OrderQuery } from './dto';
@@ -98,6 +99,7 @@ export class OrdersService {
     private readonly couponsService: CouponsService,
     private readonly shippingService: ShippingService,
     private readonly taxService: TaxService,
+    private readonly inventoryService: InventoryService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -676,56 +678,13 @@ export class OrdersService {
 
     // Update status + stock operations atomically in one transaction
     const updated = await this.prisma.$transaction(async (tx) => {
-      // Batch-fetch product stock for items that need stock operations
-      const needsStockOps =
-        newStatus === OrderStatus.CONFIRMED || newStatus === OrderStatus.CANCELLED;
-
-      let stockMap = new Map<string, { stock: number; reservedStock: number }>();
-      if (needsStockOps) {
+      // If admin cancels, restore stock based on current order status
+      if (newStatus === OrderStatus.CANCELLED) {
         const productIds = order.items
           .filter((item) => item.productId !== null)
           .map((item) => item.productId as string);
-        stockMap = await this.batchFetchProductStock(tx, productIds);
-      }
+        const stockMap = await this.batchFetchProductStock(tx, productIds);
 
-      // If confirming the order, convert reservations to actual sales
-      if (newStatus === OrderStatus.CONFIRMED) {
-        for (const item of order.items) {
-          if (!item.productId) {
-            continue;
-          }
-
-          const product = stockMap.get(item.productId);
-
-          if (!product || item.quantity > product.reservedStock) {
-            throw new BadRequestException(
-              `Cannot confirm sale: insufficient reserved stock for product ${item.productId}`,
-            );
-          }
-
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: { decrement: item.quantity },
-              reservedStock: { decrement: item.quantity },
-            },
-          });
-
-          await tx.stockMovement.create({
-            data: {
-              productId: item.productId,
-              type: StockMovementType.SALE,
-              quantity: -item.quantity,
-              reason: `Order ${order.orderNumber} confirmed`,
-              stockBefore: product.stock,
-              stockAfter: product.stock - item.quantity,
-            },
-          });
-        }
-      }
-
-      // If admin cancels, restore stock based on current order status
-      if (newStatus === OrderStatus.CANCELLED) {
         for (const item of order.items) {
           if (!item.productId) {
             continue;
@@ -797,6 +756,22 @@ export class OrdersService {
         newStatus,
       ),
     );
+
+    // Delegate stock confirmation to InventoryService (emits LOW_STOCK + cache events)
+    if (newStatus === OrderStatus.CONFIRMED) {
+      for (const item of order.items) {
+        if (!item.productId) {
+          continue;
+        }
+
+        await this.inventoryService.confirmSale(
+          item.productId,
+          item.quantity,
+          undefined,
+          `Order ${order.orderNumber} confirmed`,
+        );
+      }
+    }
 
     return updated;
   }
