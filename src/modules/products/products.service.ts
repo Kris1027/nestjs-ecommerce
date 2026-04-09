@@ -619,6 +619,48 @@ export class ProductsService {
     return this.findById(productId);
   }
 
+  async reorderImages(productId: string, imageIds: string[]): Promise<ProductDetail> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        images: { select: { id: true } },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const existingIds = new Set(product.images.map((img) => img.id));
+
+    if (imageIds.length !== existingIds.size) {
+      throw new BadRequestException('imageIds must contain exactly all image IDs for this product');
+    }
+
+    for (const id of imageIds) {
+      if (!existingIds.has(id)) {
+        throw new BadRequestException(`Image ${id} does not belong to this product`);
+      }
+    }
+
+    await this.prisma.$transaction(
+      imageIds.map((id, index) =>
+        this.prisma.productImage.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'image_change'),
+    );
+
+    return this.findById(productId);
+  }
+
   // Helper for admin - get by ID (includes inactive)
   private async findById(id: string): Promise<ProductDetail> {
     const product = await this.prisma.product.findUnique({

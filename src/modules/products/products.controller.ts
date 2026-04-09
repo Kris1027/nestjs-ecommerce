@@ -31,6 +31,7 @@ import {
   UpdateProductDto,
   ProductQueryDto,
   UploadImageDto,
+  ReorderImagesDto,
   ProductListItemDto,
   ProductDetailDto,
   ProductImageDto,
@@ -253,6 +254,20 @@ export class ProductsController {
     file: Express.Multer.File,
   ): ReturnType<ProductsService['uploadImage']> {
     return this.productsService.uploadImage(productId, file, dto.alt);
+  }
+
+  @Patch(':id/images/reorder')
+  @Roles('ADMIN')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Reorder product images (admin)' })
+  @ApiParam({ name: 'id', description: 'Product CUID' })
+  @ApiSuccessResponse(ProductDetailDto, 200, 'Images reordered')
+  @ApiErrorResponses(400, 401, 403, 404)
+  reorderImages(
+    @Param('id') productId: string,
+    @Body() dto: ReorderImagesDto,
+  ): ReturnType<ProductsService['reorderImages']> {
+    return this.productsService.reorderImages(productId, dto.imageIds);
   }
 
   @Delete(':id/images/:imageId')
