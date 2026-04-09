@@ -8,10 +8,7 @@ const createAddressSchema = z.object({
     .string()
     .min(2, 'Full name must be at least 2 characters')
     .max(100, 'Full name too long'),
-  phone: z
-    .string()
-    .min(9, 'Phone number must be at least 9 digits')
-    .max(15, 'Phone number too long'),
+  phone: z.string().regex(/^(\+48)?\d{9}$/, 'Phone must be 9 digits, optionally prefixed with +48'),
   street: z
     .string()
     .min(3, 'Street address must be at least 3 characters')
@@ -20,8 +17,7 @@ const createAddressSchema = z.object({
   region: z.string().max(100, 'Region too long').optional(),
   postalCode: z
     .string()
-    .min(3, 'Postal code must be at least 3 characters')
-    .max(20, 'Postal code too long'),
+    .regex(/^\d{2}-\d{3}$/, 'Postal code must be in XX-XXX format (e.g. 00-001)'),
   country: z.string().length(2, 'Country must be a 2-letter ISO code').default('PL'),
 });
 
