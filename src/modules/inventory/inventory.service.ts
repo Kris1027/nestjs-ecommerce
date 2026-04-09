@@ -200,6 +200,33 @@ export class InventoryService {
     return result;
   }
 
+  async getAllProducts(query: PaginationQuery): Promise<PaginatedResult<StockInfo>> {
+    const { skip, take } = getPrismaPageArgs(query);
+    const where = { isActive: true };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        select: stockInfoSelect,
+        orderBy: { name: 'asc' },
+        skip,
+        take,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    const mapped: StockInfo[] = products.map((p) => {
+      const availableStock = p.stock - p.reservedStock;
+      return {
+        ...p,
+        availableStock,
+        isLowStock: availableStock <= p.lowStockThreshold,
+      };
+    });
+
+    return paginate(mapped, total, query);
+  }
+
   async getLowStockProducts(query: PaginationQuery): Promise<PaginatedResult<StockInfo>> {
     const { skip, take } = getPrismaPageArgs(query);
 

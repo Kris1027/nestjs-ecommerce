@@ -8,6 +8,7 @@ function createMockInventoryService(): Record<keyof InventoryService, jest.Mock>
     getStock: jest.fn(),
     getMovementHistory: jest.fn(),
     adjustStock: jest.fn(),
+    getAllProducts: jest.fn(),
     getLowStockProducts: jest.fn(),
     reserveStock: jest.fn(),
     releaseStock: jest.fn(),
@@ -38,6 +39,35 @@ describe('InventoryController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('getProducts', () => {
+    it('should call getAllProducts when filter is all', async () => {
+      const query = { page: 1, limit: 10, sortOrder: 'desc' as const, filter: 'all' as const };
+      const expected = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      service.getAllProducts.mockResolvedValue(expected);
+
+      const result = await controller.getProducts(query);
+
+      expect(service.getAllProducts).toHaveBeenCalledWith(query);
+      expect(result).toEqual(expected);
+    });
+
+    it('should call getLowStockProducts when filter is low-stock', async () => {
+      const query = {
+        page: 1,
+        limit: 10,
+        sortOrder: 'desc' as const,
+        filter: 'low-stock' as const,
+      };
+      const expected = { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+      service.getLowStockProducts.mockResolvedValue(expected);
+
+      const result = await controller.getProducts(query);
+
+      expect(service.getLowStockProducts).toHaveBeenCalledWith(query);
+      expect(result).toEqual(expected);
+    });
   });
 
   describe('getLowStockProducts', () => {
