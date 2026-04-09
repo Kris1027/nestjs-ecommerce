@@ -9,6 +9,7 @@ import {
 import type { PaginationQuery } from '../../common/dto/pagination.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationEvents, LowStockEvent } from '../notifications/events';
+import { CacheEvents, ProductChangedEvent } from '../cache/cache.events';
 
 // Select for stock info response
 const stockInfoSelect = {
@@ -191,6 +192,11 @@ export class InventoryService {
       );
     }
 
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'update'),
+    );
+
     return result;
   }
 
@@ -246,7 +252,7 @@ export class InventoryService {
       throw new BadRequestException('Quantity must be positive');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.findUnique({
         where: { id: productId },
         select: { id: true, stock: true, reservedStock: true },
@@ -294,6 +300,13 @@ export class InventoryService {
         movement,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'update'),
+    );
+
+    return result;
   }
 
   async releaseStock(
@@ -305,7 +318,7 @@ export class InventoryService {
       throw new BadRequestException('Quantity must be positive');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.findUnique({
         where: { id: productId },
         select: { id: true, stock: true, reservedStock: true },
@@ -351,6 +364,13 @@ export class InventoryService {
         movement,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'update'),
+    );
+
+    return result;
   }
 
   async confirmSale(
@@ -362,7 +382,7 @@ export class InventoryService {
       throw new BadRequestException('Quantity must be positive');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const product = await tx.product.findUnique({
         where: { id: productId },
         select: { id: true, stock: true, reservedStock: true },
@@ -414,5 +434,12 @@ export class InventoryService {
         movement,
       };
     });
+
+    await this.eventEmitter.emitAsync(
+      CacheEvents.PRODUCT_CHANGED,
+      new ProductChangedEvent(productId, 'update'),
+    );
+
+    return result;
   }
 }

@@ -7,6 +7,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StockMovementType } from '../../generated/prisma/client';
 import { NotificationEvents } from '../notifications/events';
+import { CacheEvents } from '../cache/cache.events';
 
 describe('InventoryService', () => {
   let service: InventoryService;
@@ -279,6 +280,10 @@ describe('InventoryService', () => {
       });
 
       expect(eventEmitter.emit).not.toHaveBeenCalled();
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockStockProduct.id, action: 'update' }),
+      );
     });
 
     it('should emit LowStockEvent when stock drops below threshold', async () => {
@@ -367,6 +372,10 @@ describe('InventoryService', () => {
         }),
         select: expect.objectContaining({ id: true }),
       });
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockStockProduct.id, action: 'update' }),
+      );
     });
 
     it('should throw BadRequestException when insufficient stock', async () => {
@@ -437,6 +446,10 @@ describe('InventoryService', () => {
         }),
         select: expect.objectContaining({ id: true }),
       });
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockStockProduct.id, action: 'update' }),
+      );
     });
 
     it('should throw BadRequestException when releasing more than reserved', async () => {
@@ -509,6 +522,10 @@ describe('InventoryService', () => {
         }),
         select: expect.objectContaining({ id: true }),
       });
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+        CacheEvents.PRODUCT_CHANGED,
+        expect.objectContaining({ productId: mockStockProduct.id, action: 'update' }),
+      );
     });
 
     it('should throw BadRequestException when confirming more than reserved', async () => {
