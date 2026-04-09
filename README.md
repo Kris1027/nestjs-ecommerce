@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml)
 
-A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.9, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 97 fully documented API endpoints.
+A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.9, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 98 fully documented API endpoints.
 
 ---
 
@@ -20,7 +20,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
 | **Documentation**  | Swagger/OpenAPI (97 endpoints)              |
-| **Testing**        | Jest 30 (45 unit suites, 5 E2E suites, 681 tests) |
+| **Testing**        | Jest 30 (45 unit suites, 5 E2E suites, 690 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (security, lint, typecheck, test, build) |
 | **Hosting**        | Railway (staging + production environments) |
@@ -45,7 +45,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 
 - Profile management (view, update name)
 - Password change with current password verification
-- Address book — CRUD for shipping/billing addresses with default selection
+- Address book — CRUD for shipping/billing addresses with default selection and Polish format validation (postal code, phone)
 - Admin: list users, view details, update roles, deactivate, hard delete
 
 ### Product Catalog
@@ -57,13 +57,15 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 
 - Real-time stock tracking with reserved stock calculations
 - Stock movement audit trail (adjustments, reservations, releases, sales, returns, restocks)
-- Low-stock threshold alerts with admin notifications
+- Low-stock threshold alerts with admin notifications (triggered on stock adjustments and order confirmations)
+- Event-driven cache invalidation on all stock operations (adjustments, reservations, releases, sales)
+- All-products inventory listing with optional low-stock filter
 - Transactional stock operations (atomic read + update)
 
 ### Shopping Cart
 
 - Authenticated user carts with lazy creation
-- Guest carts (session-based, 30-day expiry) with merge on login
+- Guest carts (session-based, 30-day expiry) with merge on login or registration
 - Add, update quantity, remove items, clear cart
 - Product availability and stock validation on every operation
 - Coupon application with live discount preview
@@ -186,7 +188,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 - Product listings (5 min TTL), product detail by slug (10 min TTL)
 - Category listings (10 min TTL), category tree (30 min TTL), category detail by slug (10 min TTL)
 - **Event-driven invalidation** — cache cleared automatically on product/category mutations
-- Indirect invalidation on order creation, status changes, and stock adjustments
+- Inventory-aware invalidation on all stock operations (adjustments, reservations, releases, sales), order creation, and status changes
 - Error-resilient — Redis failures degrade gracefully to direct database queries
 
 ### API Versioning
@@ -341,7 +343,7 @@ The Docker Compose setup includes:
 
 ## API Documentation
 
-Swagger UI is available at **`/docs`** in non-production environments (91 documented endpoints). All API paths are prefixed with `/api/v1`.
+Swagger UI is available at **`/docs`** in non-production environments (98 documented endpoints). All API paths are prefixed with `/api/v1`.
 
 Additional export formats:
 - JSON: `/docs-json`
@@ -392,7 +394,7 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **45 test suites** with **681 unit tests**
+- **45 test suites** with **690 unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
@@ -447,7 +449,7 @@ GitHub Actions runs **5 parallel jobs** on every PR and push to main:
 | -------------- | ------- | --------------------------------------------------- |
 | **Security**   | 5 min   | Dependency vulnerability scanning (`pnpm audit`)    |
 | **Lint**       | 5 min   | ESLint checks + TypeScript typecheck                |
-| **Test**       | 10 min  | 681 unit tests with coverage threshold enforcement  |
+| **Test**       | 10 min  | 690 unit tests with coverage threshold enforcement  |
 | **Build**      | 5 min   | TypeScript compilation (type safety)                |
 | **Docker**     | 10 min  | Build production Docker image (same as Railway)     |
 
