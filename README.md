@@ -19,7 +19,7 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Caching**        | Redis + cache-manager (Keyv adapter)        |
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
-| **Documentation**  | Swagger/OpenAPI (97 endpoints)              |
+| **Documentation**  | Swagger/OpenAPI (98 endpoints)              |
 | **Testing**        | Jest 30 (45 unit suites, 5 E2E suites, 690 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (security, lint, typecheck, test, build) |
