@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Kris1027/nestjs-ecommerce-api/actions/workflows/ci.yml)
 
-A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.9, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 98 fully documented API endpoints.
+A production-ready **single-vendor ecommerce REST API** built with NestJS 11, TypeScript 5.9, Prisma 7, and PostgreSQL. Features JWT authentication with token rotation, Stripe payments with webhook processing, Cloudinary image uploads, BullMQ background jobs, and 99 fully documented API endpoints.
 
 ---
 
@@ -19,8 +19,8 @@ A production-ready **single-vendor ecommerce REST API** built with NestJS 11, Ty
 | **Caching**        | Redis + cache-manager (Keyv adapter)        |
 | **Queue**          | BullMQ + Redis (background jobs)            |
 | **Validation**     | Zod 4 + nestjs-zod                          |
-| **Documentation**  | Swagger/OpenAPI (98 endpoints)              |
-| **Testing**        | Jest 30 (45 unit suites, 5 E2E suites, 690 tests) |
+| **Documentation**  | Swagger/OpenAPI (99 endpoints)              |
+| **Testing**        | Jest 30 (45 unit suites, 5 E2E suites, 694 tests) |
 | **Containerization** | Docker + Docker Compose                   |
 | **CI/CD**          | GitHub Actions (security, lint, typecheck, test, build) |
 | **Hosting**        | Railway (staging + production environments) |
@@ -343,7 +343,7 @@ The Docker Compose setup includes:
 
 ## API Documentation
 
-Swagger UI is available at **`/docs`** in non-production environments (98 documented endpoints). All API paths are prefixed with `/api/v1`.
+Swagger UI is available at **`/docs`** in non-production environments (99 documented endpoints). All API paths are prefixed with `/api/v1`.
 
 Additional export formats:
 - JSON: `/docs-json`
@@ -394,7 +394,7 @@ pnpm test -- --testPathPattern=auth.service
 pnpm test:cov
 ```
 
-- **45 test suites** with **690 unit tests**
+- **45 test suites** with **694 unit tests**
 - Services, controllers, guards, filters, interceptors, and event listeners all tested
 - Dependencies mocked via custom factories (`createMockPrismaClient`, Stripe, Cloudinary, BullMQ)
 - Coverage thresholds enforced: 80% lines/functions, 70% branches
@@ -449,7 +449,7 @@ GitHub Actions runs **5 parallel jobs** on every PR and push to main:
 | -------------- | ------- | --------------------------------------------------- |
 | **Security**   | 5 min   | Dependency vulnerability scanning (`pnpm audit`)    |
 | **Lint**       | 5 min   | ESLint checks + TypeScript typecheck                |
-| **Test**       | 10 min  | 690 unit tests with coverage threshold enforcement  |
+| **Test**       | 10 min  | 694 unit tests with coverage threshold enforcement  |
 | **Build**      | 5 min   | TypeScript compilation (type safety)                |
 | **Docker**     | 10 min  | Build production Docker image (same as Railway)     |
 
