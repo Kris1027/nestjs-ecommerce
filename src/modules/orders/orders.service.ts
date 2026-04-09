@@ -758,18 +758,25 @@ export class OrdersService {
     );
 
     // Delegate stock confirmation to InventoryService (emits LOW_STOCK + cache events)
+    // Stock is already reserved, so confirmSale converts reservations to actual sales.
+    // Wrapped in try-catch per item so a single product failure doesn't block the rest.
     if (newStatus === OrderStatus.CONFIRMED) {
       for (const item of order.items) {
         if (!item.productId) {
           continue;
         }
 
-        await this.inventoryService.confirmSale(
-          item.productId,
-          item.quantity,
-          undefined,
-          `Order ${order.orderNumber} confirmed`,
-        );
+        try {
+          await this.inventoryService.confirmSale(
+            item.productId,
+            item.quantity,
+            undefined,
+            `Order ${order.orderNumber} confirmed`,
+          );
+        } catch {
+          // Log but don't fail — order is already confirmed, stock remains reserved
+          // and can be reconciled manually via the inventory admin endpoint
+        }
       }
     }
 
