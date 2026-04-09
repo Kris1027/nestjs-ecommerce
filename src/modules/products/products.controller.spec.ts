@@ -12,6 +12,7 @@ function createMockProductsService(): Record<keyof ProductsService, jest.Mock> {
     hardDelete: jest.fn(),
     addImage: jest.fn(),
     uploadImage: jest.fn(),
+    reorderImages: jest.fn(),
     removeImage: jest.fn(),
   };
 }
