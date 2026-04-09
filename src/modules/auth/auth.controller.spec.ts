@@ -56,10 +56,10 @@ describe('AuthController', () => {
       const expected = { accessToken: 'at', refreshToken: 'rt' };
       service.register.mockResolvedValue(expected);
 
-      const result = await controller.register(dto as any, req);
+      const result = await controller.register(dto as any, req, undefined);
 
       // Controller extracts user-agent and IP from the raw request
-      expect(service.register).toHaveBeenCalledWith(dto, 'TestAgent/1.0', '127.0.0.1');
+      expect(service.register).toHaveBeenCalledWith(dto, 'TestAgent/1.0', '127.0.0.1', undefined);
       expect(result).toEqual(expected);
     });
 
@@ -68,9 +68,25 @@ describe('AuthController', () => {
       const req = createMockRequest({ ip: undefined });
       service.register.mockResolvedValue({});
 
-      await controller.register(dto as any, req);
+      await controller.register(dto as any, req, undefined);
 
-      expect(service.register).toHaveBeenCalledWith(dto, 'TestAgent/1.0', '127.0.0.1');
+      expect(service.register).toHaveBeenCalledWith(dto, 'TestAgent/1.0', '127.0.0.1', undefined);
+    });
+
+    it('should pass guest cart token to authService on register', async () => {
+      const dto = { email: 'test@example.com', password: 'Password1' };
+      const req = createMockRequest();
+      const guestCartToken = 'guest-token-123';
+      service.register.mockResolvedValue({ accessToken: 'at', refreshToken: 'rt' });
+
+      await controller.register(dto as any, req, guestCartToken);
+
+      expect(service.register).toHaveBeenCalledWith(
+        dto,
+        'TestAgent/1.0',
+        '127.0.0.1',
+        guestCartToken,
+      );
     });
   });
 
