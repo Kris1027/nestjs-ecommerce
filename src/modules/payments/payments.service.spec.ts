@@ -175,6 +175,49 @@ describe('PaymentsService', () => {
       expect(result).toEqual({ clientSecret: 'pi_test_123_secret_456' });
     });
 
+    it('should recreate intent when Stripe intent has unexpected status', async () => {
+      prisma.order.findUnique.mockResolvedValue({
+        ...mockOrder,
+        payment: {
+          id: paymentId,
+          status: 'PENDING',
+          stripePaymentIntentId: stripeIntentId,
+        },
+      });
+      stripe.paymentIntents.retrieve.mockResolvedValue({
+        id: stripeIntentId,
+        status: 'requires_capture',
+      });
+      prisma.payment.delete.mockResolvedValue({});
+      prisma.payment.create.mockResolvedValue(mockPayment);
+
+      const result = await service.createPaymentIntent(userId, { orderId });
+
+      expect(prisma.payment.delete).toHaveBeenCalledWith({
+        where: { id: paymentId },
+      });
+      expect(result).toEqual({ clientSecret: 'pi_test_123_secret_456' });
+    });
+
+    it('should throw when Stripe intent succeeded but DB shows PENDING', async () => {
+      prisma.order.findUnique.mockResolvedValue({
+        ...mockOrder,
+        payment: {
+          id: paymentId,
+          status: 'PENDING',
+          stripePaymentIntentId: stripeIntentId,
+        },
+      });
+      stripe.paymentIntents.retrieve.mockResolvedValue({
+        id: stripeIntentId,
+        status: 'succeeded',
+      });
+
+      await expect(service.createPaymentIntent(userId, { orderId })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
     it('should throw BadRequestException when payment already completed', async () => {
       prisma.order.findUnique.mockResolvedValue({
         ...mockOrder,

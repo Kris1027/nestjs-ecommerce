@@ -125,16 +125,28 @@ export class PaymentsService {
           this.stripe.paymentIntents.retrieve(order.payment!.stripePaymentIntentId),
         );
 
-        // If Stripe has canceled the intent, delete our record and create fresh
-        if (existingIntent.status === 'canceled') {
-          await this.prisma.payment.delete({
-            where: { id: order.payment.id },
-          });
-          // Fall through to create new intent below
-        } else {
-          // Intent is still alive — return it (customer can retry payment)
+        const reusableStatuses = [
+          'requires_payment_method',
+          'requires_confirmation',
+          'requires_action',
+          'processing',
+        ];
+
+        if (reusableStatuses.includes(existingIntent.status)) {
           return { clientSecret: existingIntent.client_secret };
         }
+
+        if (existingIntent.status === 'succeeded') {
+          this.logger.warn(
+            `PaymentIntent ${existingIntent.id} succeeded on Stripe but local status is ${order.payment.status} — triggering sync`,
+          );
+          throw new BadRequestException('Payment already completed for this order');
+        }
+
+        // For canceled, requires_capture, or any unexpected status — delete and recreate
+        await this.prisma.payment.delete({
+          where: { id: order.payment.id },
+        });
       } else {
         // SUCCEEDED, REFUND_PENDING, REFUNDED, PARTIALLY_REFUNDED
         throw new BadRequestException('Payment already completed for this order');
