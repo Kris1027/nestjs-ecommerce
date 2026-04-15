@@ -53,6 +53,7 @@ jobs:
 
       - name: Audit dependencies
         run: pnpm audit --audit-level=critical
+        continue-on-error: true # npm registry retired the classic audit endpoint (410 Gone) — pnpm hasn't migrated to bulk advisory API yet
 
   lint:
     name: Lint
